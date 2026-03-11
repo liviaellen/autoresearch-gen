@@ -301,7 +301,7 @@ Built on top of:
 
 ## Maintainer
 
-[@liviaellen](https://github.com/liviaellen) at [Mem0](https://github.com/mem0ai)
+[@liviaellen](https://github.com/liviaellen) at [Mem0](https://github.com/mem0ai) · [@ellen_in_sf](https://x.com/ellen_in_sf)
 
 ## License
 
