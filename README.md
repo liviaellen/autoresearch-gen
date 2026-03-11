@@ -296,7 +296,7 @@ Think of it as:
 
 ## Roadmap
 
-- **Mem0 integration** — persistent memory across experiment sessions so the agent remembers what worked, what failed, and why across runs
+- **Memory / context layer (Mem0)** — persistent memory across experiment sessions so the agent remembers what worked, what failed, and why. Context carries over between runs — no more starting from scratch each time
 - **Beat existing benchmarks** — reproduce and improve on results from recent pretraining research papers using the autonomous loop
 - **Platform integrations** — support for Weights & Biases, MLflow, and other experiment tracking platforms alongside the built-in dashboard
 
