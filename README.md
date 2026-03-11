@@ -1,8 +1,12 @@
 # autoresearch-gen
 
-Scaffold generator for [Karpathy's autoresearch](https://github.com/karpathy/autoresearch). Tell it what you're working on, pick your LLM and backend, and it generates a ready-to-run experiment directory with `prepare.py`, `train.py`, and `program.md`.
+I loved Karpathy's [autoresearch](https://github.com/karpathy/autoresearch) — point an agent at a codebase and let it run experiments overnight. But every time I wanted to start a new experiment, I was manually editing `program.md`, copy-pasting train scripts, and losing context between runs.
 
-Supports **PyTorch (CUDA)** and **MLX (Apple Silicon)**. Switch the agent LLM by passing a model name and key. Comes with a **Streamlit dashboard** to visualize any experiment's results.
+So I built this. **autoresearch-gen** is a scaffold generator that sits on top of autoresearch. Tell it what you're working on, pick your LLM and backend, and it generates a ready-to-run experiment directory with `prepare.py`, `train.py`, and `program.md` — with your context baked in.
+
+I also added MLX support (I run everything on my Mac), a Streamlit dashboard to actually see what's happening, and the ability to swap LLMs so you're not locked to one provider.
+
+Supports **PyTorch (CUDA)** and **MLX (Apple Silicon)**. Comes with a **Streamlit dashboard** to visualize any experiment's results.
 
 ![architecture](architecture.png)
 
