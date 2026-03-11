@@ -294,6 +294,12 @@ Think of it as:
 - **autoresearch** = the experiment
 - **autoresearch-gen** = the experiment factory + dashboard
 
+## Roadmap
+
+- **Mem0 integration** — persistent memory across experiment sessions so the agent remembers what worked, what failed, and why across runs
+- **Beat existing benchmarks** — reproduce and improve on results from recent pretraining research papers using the autonomous loop
+- **Platform integrations** — support for Weights & Biases, MLflow, and other experiment tracking platforms alongside the built-in dashboard
+
 ## Attribution
 
 Built on top of:
