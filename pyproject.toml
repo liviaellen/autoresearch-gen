@@ -1,0 +1,33 @@
+[project]
+name = "autoresearch-gen"
+version = "0.1.0"
+description = "Scaffold generator for autonomous pretraining research (PT + MLX)"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+pt = [
+    "torch>=2.0",
+    "numpy",
+    "pyarrow",
+    "requests",
+    "rustbpe",
+    "tiktoken",
+]
+mlx = [
+    "mlx>=0.5",
+    "numpy",
+    "pyarrow",
+    "requests",
+    "rustbpe",
+    "tiktoken",
+]
+
+dashboard = [
+    "streamlit",
+    "pandas",
+    "plotly",
+]
+
+[project.scripts]
+autoresearch-gen = "gen:main"
