@@ -4,6 +4,8 @@ Scaffold generator for [Karpathy's autoresearch](https://github.com/karpathy/aut
 
 Supports **PyTorch (CUDA)** and **MLX (Apple Silicon)**. Switch the agent LLM by passing a model name and key. Comes with a **Streamlit dashboard** to visualize any experiment's results.
 
+![architecture](architecture.png)
+
 ## What it generates
 
 ```
