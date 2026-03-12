@@ -13,7 +13,14 @@ help: ## Show available targets
 
 gen: ## Generate scaffold — interactive, or pass EXP/CONTEXT/DATA/GOALS
 ifdef CONTEXT
-	python gen.py --output-dir $(EXP) --context "$(CONTEXT)" --data "$(DATA)" --goals "$(GOALS)"
+	python gen.py --output-dir $(EXP) \
+		--context "$(CONTEXT)" \
+		$(if $(DATA),--data "$(DATA)") \
+		$(if $(GOALS),--goals "$(GOALS)") \
+		$(if $(BACKEND),--backend $(BACKEND)) \
+		$(if $(MODEL),--model $(MODEL)) \
+		$(if $(PREFS),--prefs "$(PREFS)") \
+		$(if $(DEPTH),--depth $(DEPTH))
 else
 	python gen.py
 endif

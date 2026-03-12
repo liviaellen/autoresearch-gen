@@ -53,7 +53,7 @@ python gen.py --output-dir experiments/mar11 --backend mlx
 
 Both modes collect your project context, run the LLM interview, generate the scaffold, and **run the baseline automatically**. Use `--no-interview` to skip follow-ups. Use `--no-llm` to skip LLM customization entirely.
 
-## How the interview works
+## How the scaffolding works
 
 Most scaffold generators take your input at face value. If you say "not sure", that's what gets baked into the template. autoresearch-gen does something different — it uses your chosen LLM to interview you before generating anything.
 
@@ -89,13 +89,20 @@ make baseline EXP=experiments/my-run  # run baseline manually
 make agent EXP=experiments/my-run     # launch Claude agent
 ```
 
-Pass `CONTEXT`/`DATA`/`GOALS` to skip interactive mode:
+Pass `CONTEXT`/`DATA`/`GOALS` to skip interactive mode. Optional: `BACKEND`, `MODEL`, `PREFS`, `DEPTH`.
 
 ```bash
 make gen EXP=experiments/mar12 \
   CONTEXT="Small GPT pretraining on M5 Max" \
-  DATA="climbmix-400b-shuffle" \
+  DATA="HuggingFaceFW/fineweb-edu, streaming, first 10 shards" \
   GOALS="Minimize val_bpb"
+
+# With all options:
+make gen EXP=experiments/mar12 BACKEND=mlx MODEL=claude-sonnet-4-20250514 DEPTH=8 \
+  CONTEXT="Small GPT pretraining on M5 Max" \
+  DATA="HuggingFaceFW/fineweb-edu, streaming, first 10 shards" \
+  GOALS="Minimize val_bpb" \
+  PREFS="Start with 8 layers, try wider models"
 ```
 
 ## Experiment diagrams
@@ -151,8 +158,14 @@ python gen.py \
   --output-dir experiments/small-gpt \
   --context "New to LLM pretraining. M5 Max 48GB, 40-core GPU. \
 Just want to see how good a small model can get." \
-  --data "climbmix-400b-shuffle from HuggingFace" \
+  --data "HuggingFaceFW/fineweb-edu, streaming, first 10 shards" \
   --goals "Lowest val_bpb possible. Try whatever helps."
+
+# Or with make:
+make gen EXP=experiments/small-gpt \
+  CONTEXT="New to LLM pretraining. M5 Max 48GB, 40-core GPU. Just want to see how good a small model can get." \
+  DATA="HuggingFaceFW/fineweb-edu, streaming, first 10 shards" \
+  GOALS="Lowest val_bpb possible. Try whatever helps."
 ```
 
 **Example 2: Attention-free architectures**
@@ -162,8 +175,14 @@ python gen.py \
   --output-dir experiments/attention-free \
   --context "Exploring attention-free LLM architectures on M5 Max 48GB. \
 Interested in RWKV-style, state space models, or linear attention." \
-  --data "climbmix-400b-shuffle from HuggingFace" \
+  --data "roneneldan/TinyStories from HuggingFace" \
   --goals "Lowest val_bpb without any softmax attention. Compare against transformer baseline."
+
+# Or with make:
+make gen EXP=experiments/attention-free \
+  CONTEXT="Exploring attention-free LLM architectures on M5 Max 48GB. Interested in RWKV-style, state space models, or linear attention." \
+  DATA="roneneldan/TinyStories from HuggingFace" \
+  GOALS="Lowest val_bpb without any softmax attention. Compare against transformer baseline."
 ```
 
 **Example 3: Tiny model, max throughput**
@@ -173,9 +192,15 @@ python gen.py \
   --output-dir experiments/tiny-fast \
   --context "How fast can we train a tiny LLM on M5 Max 48GB? \
 Optimize for tokens/sec, not model quality." \
-  --data "climbmix-400b-shuffle from HuggingFace" \
+  --data "cerebras/SlimPajama-627B, streaming, first 10 shards" \
   --goals "Maximize tokens/sec while keeping val_bpb under 2.0. \
 Try very small models (4 layers, narrow), large batch sizes, fewer steps."
+
+# Or with make:
+make gen EXP=experiments/tiny-fast \
+  CONTEXT="How fast can we train a tiny LLM on M5 Max 48GB? Optimize for tokens/sec, not model quality." \
+  DATA="cerebras/SlimPajama-627B, streaming, first 10 shards" \
+  GOALS="Maximize tokens/sec while keeping val_bpb under 2.0. Try very small models (4 layers, narrow), large batch sizes, fewer steps."
 ```
 
 The LLM interview proposes concrete suggestions for architecture and hyperparameters. Hit Enter to accept or type changes.
@@ -193,11 +218,18 @@ python gen.py \
   --model claude-sonnet-4-20250514 \
   --context "How deep can we scale a GPT on M5 Max (48GB, 40-core GPU)? \
 Start small, push model size aggressively." \
-  --data "climbmix-400b-shuffle from HuggingFace, 10 shards" \
+  --data "karpathy/climbmix-400b-shuffle from HuggingFace, 10 shards" \
   --goals "Minimize val_bpb. Find the largest model that trains in 5 min on 48GB." \
   --prefs "Start with 4 layers. Try depths 4, 8, 12, 16, 20. \
 Also try wider models. Stay under 40GB memory." \
   --depth 4
+
+# Or with make:
+make gen EXP=experiments/scaling-depth BACKEND=mlx MODEL=claude-sonnet-4-20250514 DEPTH=4 \
+  CONTEXT="How deep can we scale a GPT on M5 Max (48GB, 40-core GPU)? Start small, push model size aggressively." \
+  DATA="karpathy/climbmix-400b-shuffle from HuggingFace, 10 shards" \
+  GOALS="Minimize val_bpb. Find the largest model that trains in 5 min on 48GB." \
+  PREFS="Start with 4 layers. Try depths 4, 8, 12, 16, 20. Also try wider models. Stay under 40GB memory."
 ```
 
 **Example 5: LR schedule ablation**
@@ -209,12 +241,19 @@ python gen.py \
   --model claude-sonnet-4-20250514 \
   --context "Systematic LR schedule ablation on M5 Max. \
 Fixed 8-layer GPT, only changing LR code." \
-  --data "climbmix-400b-shuffle from HuggingFace, 10 shards" \
+  --data "Skywork/SkyPile-150B, streaming, first 10 shards" \
   --goals "Find the LR schedule that minimizes val_bpb. \
 Try cosine, linear, constant, cyclic, 1cycle. Keep architecture frozen." \
   --prefs "Do NOT change model architecture. Only modify LR code. \
 Try at least 10 variants." \
   --depth 8
+
+# Or with make:
+make gen EXP=experiments/lr-ablation BACKEND=mlx MODEL=claude-sonnet-4-20250514 DEPTH=8 \
+  CONTEXT="Systematic LR schedule ablation on M5 Max. Fixed 8-layer GPT, only changing LR code." \
+  DATA="Skywork/SkyPile-150B, streaming, first 10 shards" \
+  GOALS="Find the LR schedule that minimizes val_bpb. Try cosine, linear, constant, cyclic, 1cycle. Keep architecture frozen." \
+  PREFS="Do NOT change model architecture. Only modify LR code. Try at least 10 variants."
 ```
 
 ### Running an experiment
@@ -222,14 +261,15 @@ Try at least 10 variants." \
 ```bash
 # 1. Generate scaffold + run baseline (all automatic)
 python gen.py --output-dir experiments/my-run --backend mlx
+# Or: make gen EXP=experiments/my-run BACKEND=mlx
 
 # 2. Point your agent at the verified scaffold
-cd experiments/my-run
+make agent EXP=experiments/my-run
 # In Claude Code:
 #   "Read program.md and let's kick off a new experiment. Do the setup first."
 
 # 3. Watch results in another terminal
-streamlit run ../../dashboard.py
+make dashboard
 ```
 
 No manual `prepare.py` or `train.py` — gen.py runs both and verifies the baseline before you start.
@@ -246,7 +286,7 @@ python gen.py \
   --backend mlx \
   --model claude-sonnet-4-20250514 \
   --context "Small GPT pretraining on M5 Max (48GB, 40-core GPU)" \
-  --data "climbmix-400b-shuffle, 10 shards" \
+  --data "HuggingFaceFW/fineweb-edu, streaming, first 10 shards" \
   --goals "Minimize val_bpb. Try different model sizes, LR schedules, and activations"
 ```
 
@@ -283,7 +323,7 @@ python gen.py \
   --model gpt-4o \
   --api-key sk-... \
   --context "8-layer GPT on H100 80GB" \
-  --data "climbmix-400b, full dataset" \
+  --data "karpathy/climbmix-400b-shuffle, full dataset" \
   --goals "Lowest val_bpb possible"
 ```
 
