@@ -206,7 +206,13 @@ if meta.get("agent_llm"):
     st.sidebar.markdown(f"**Agent LLM:** {meta['agent_llm']}")
 if meta.get("context"):
     st.sidebar.markdown("---")
-    st.sidebar.markdown(f"**Context:** {meta['context'][:200]}{'...' if len(meta.get('context', '')) > 200 else ''}")
+    st.sidebar.markdown("**Context**")
+    st.sidebar.markdown(
+        f'<div style="max-height:120px;overflow-y:auto;padding:8px;'
+        f'background:#262730;border-radius:6px;font-size:13px;line-height:1.5">'
+        f'{meta["context"]}</div>',
+        unsafe_allow_html=True,
+    )
 
 if df is None:
     st.title(f"{selected_name}")
