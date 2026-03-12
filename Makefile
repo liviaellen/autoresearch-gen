@@ -1,5 +1,10 @@
 .PHONY: help gen dashboard diagram baseline agent clean
 
+# Print each command before executing and stop on errors;
+# this ensures failing recipes show the command that ran.
+.SHELLFLAGS := -exu -o pipefail
+
+
 # Default experiment dir (override with EXP=experiments/foo)
 EXP ?= experiments/my-run
 
@@ -12,6 +17,8 @@ help: ## Show available targets
 # ---------------------------------------------------------------------------
 
 gen: ## Generate scaffold — interactive, or pass EXP/CONTEXT/DATA/GOALS
+	@# echo an example invocation when this target is executed or fails
+	@echo "example: make gen CONTEXT=\"some text\" EXP=experiments/foo"
 ifdef CONTEXT
 	python gen.py --output-dir $(EXP) \
 		--context "$(CONTEXT)" \
