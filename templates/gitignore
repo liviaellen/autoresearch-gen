@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+run.log
+*.log
+results.tsv
+*.png
+.DS_Store
+uv.lock

@@ -25,22 +25,26 @@ os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 class GPTConfig:
     sequence_len: int = 2048
     vocab_size: int = 32768
-    n_layer: int = 8  # Reduced layer count for a smaller model
-    n_head: int = 8  # More heads to capture more nuances
-    n_kv_head: int = 8
-    n_embd: int = 512  # Reduced embedding size for smaller model
+    n_layer: int = 12
+    n_head: int = 6
+    n_kv_head: int = 6
+    n_embd: int = 768
     window_pattern: str = "SSSL"
+
 
 def norm(x):
     return x * mx.rsqrt(mx.mean(x * x, axis=-1, keepdims=True) + 1e-5)
 
+
 def has_ve(layer_idx, n_layer):
     return layer_idx % 2 == (n_layer - 1) % 2
+
 
 def create_additive_causal_mask(seq_len, dtype=mx.float32):
     indices = mx.arange(seq_len)
     blocked = indices[None, :] > indices[:, None]
     return mx.where(blocked, mx.array(float("-inf"), dtype=dtype), mx.array(0.0, dtype=dtype))
+
 
 def create_sliding_window_mask(seq_len, window_size, dtype=mx.float32):
     indices = mx.arange(seq_len)
@@ -49,8 +53,10 @@ def create_sliding_window_mask(seq_len, window_size, dtype=mx.float32):
     blocked = causal | too_far
     return mx.where(blocked, mx.array(float("-inf"), dtype=dtype), mx.array(0.0, dtype=dtype))
 
+
 def get_peak_memory_mb():
     return mx.get_peak_memory() / 1024 / 1024
+
 
 class CausalSelfAttention(nn.Module):
     def __init__(self, config, layer_idx):
@@ -96,6 +102,7 @@ class CausalSelfAttention(nn.Module):
         y = y.transpose(0, 2, 1, 3).reshape(batch_size, seq_len, -1)
         return self.c_proj(y)
 
+
 class MLP(nn.Module):
     def __init__(self, config):
         super().__init__()
@@ -107,6 +114,7 @@ class MLP(nn.Module):
         x = mx.maximum(x, 0) ** 2  # ReluSquared
         return self.c_proj(x)
 
+
 class Block(nn.Module):
     def __init__(self, config, layer_idx):
         super().__init__()
@@ -117,6 +125,7 @@ class Block(nn.Module):
         x = x + self.attn(norm(x), ve, mask)
         x = x + self.mlp(norm(x))
         return x
+
 
 class GPT(nn.Module):
     def __init__(self, config):
@@ -130,12 +139,12 @@ class GPT(nn.Module):
         self.x0_lambdas = mx.zeros((config.n_layer,), dtype=mx.float32)
         head_dim = config.n_embd // config.n_head
         kv_dim = config.n_kv_head * head_dim
-        self.value_embeds = {
+        self.value_embeds = {{
             str(i): nn.Embedding(config.vocab_size, kv_dim)
             for i in range(config.n_layer)
             if has_ve(i, config.n_layer)
-        }
-        self._mask_cache = {}
+        }}
+        self._mask_cache = {{}}
 
     def init_weights(self):
         n_embd = self.config.n_embd
@@ -165,7 +174,7 @@ class GPT(nn.Module):
         assert all(char in "SL" for char in pattern)
         long_window = config.sequence_len
         short_window = long_window // 2
-        char_to_window = {"L": long_window, "S": short_window}
+        char_to_window = {{"L": long_window, "S": short_window}}
         window_sizes = []
         for layer_idx in range(config.n_layer):
             char = pattern[layer_idx % len(pattern)]
@@ -212,57 +221,58 @@ class GPT(nn.Module):
         denom = mx.maximum(mx.sum(valid), 1)
         return mx.sum(ce) / denom
 
+
 # ---------------------------------------------------------------------------
 # Custom optimizer with per-parameter learning rates
 # ---------------------------------------------------------------------------
 
 class AdamW:
     def __init__(self, model, unembedding_lr, embedding_lr, matrix_lr, weight_decay, adam_betas, scalar_lr):
-        self.param_config = {}
-        self.adam_state = {}
+        self.param_config = {{}}
+        self.adam_state = {{}}
 
         model_dim = model.config.n_embd
-        dmodel_lr_scale = (model_dim / 512) ** -0.5
+        dmodel_lr_scale = (model_dim / 768) ** -0.5
 
         flat_params = tree_flatten(model.parameters())
         for path, param in flat_params:
             if "blocks" in path and param.ndim == 2:
-                self.param_config[path] = {
+                self.param_config[path] = {{
                     "lr": matrix_lr, "betas": adam_betas,
                     "eps": 1e-10, "weight_decay": weight_decay,
-                }
+                }}
             elif "wte" in path:
-                self.param_config[path] = {
+                self.param_config[path] = {{
                     "lr": embedding_lr * dmodel_lr_scale, "betas": adam_betas,
                     "eps": 1e-10, "weight_decay": 0.0,
-                }
+                }}
             elif "value_embeds" in path:
-                self.param_config[path] = {
+                self.param_config[path] = {{
                     "lr": embedding_lr * dmodel_lr_scale, "betas": adam_betas,
                     "eps": 1e-10, "weight_decay": 0.0,
-                }
+                }}
             elif "lm_head" in path:
-                self.param_config[path] = {
+                self.param_config[path] = {{
                     "lr": unembedding_lr * dmodel_lr_scale, "betas": adam_betas,
                     "eps": 1e-10, "weight_decay": 0.0,
-                }
+                }}
             elif "resid_lambdas" in path:
-                self.param_config[path] = {
+                self.param_config[path] = {{
                     "lr": scalar_lr * 0.01, "betas": adam_betas,
                     "eps": 1e-10, "weight_decay": 0.0,
-                }
+                }}
             elif "x0_lambdas" in path:
-                self.param_config[path] = {
+                self.param_config[path] = {{
                     "lr": scalar_lr, "betas": (0.96, 0.95),
                     "eps": 1e-10, "weight_decay": 0.0,
-                }
+                }}
             else:
-                self.param_config[path] = {
+                self.param_config[path] = {{
                     "lr": unembedding_lr * dmodel_lr_scale, "betas": adam_betas,
                     "eps": 1e-10, "weight_decay": 0.0,
-                }
+                }}
 
-        self.initial_lrs = {path: config["lr"] for path, config in self.param_config.items()}
+        self.initial_lrs = {{path: config["lr"] for path, config in self.param_config.items()}}
 
     def _set_path_value(self, model, path, value):
         parts = path.split(".")
@@ -289,11 +299,11 @@ class AdamW:
         weight_decay = config["weight_decay"]
 
         if path not in self.adam_state:
-            self.adam_state[path] = {
+            self.adam_state[path] = {{
                 "m": mx.zeros_like(grad_f32),
                 "v": mx.zeros_like(grad_f32),
                 "t": 0,
-            }
+            }}
 
         state = self.adam_state[path]
         state["t"] += 1
@@ -331,28 +341,29 @@ class AdamW:
             arrays.extend([state["m"], state["v"]])
         return arrays
 
+
 # ---------------------------------------------------------------------------
 # Hyperparameters (edit these directly)
 # ---------------------------------------------------------------------------
 
 ASPECT_RATIO = 64
-HEAD_DIM = 64  # More compute efficiency with smaller head dim
+HEAD_DIM = 128
 WINDOW_PATTERN = "SSSL"
 
-TOTAL_BATCH_SIZE = 2**14  # Smaller batch size to fit in memory
-EMBEDDING_LR = 0.3  # Balanced learning rate for embeddings
-UNEMBEDDING_LR = 0.002
-MATRIX_LR = 0.02
-SCALAR_LR = 0.25
-WEIGHT_DECAY = 0.1
-ADAM_BETAS = (0.9, 0.999)
-WARMUP_RATIO = 0.1  # Use a short warmup to reach stability quickly
+TOTAL_BATCH_SIZE = 2**16
+EMBEDDING_LR = 0.6
+UNEMBEDDING_LR = 0.004
+MATRIX_LR = 0.04
+SCALAR_LR = 0.5
+WEIGHT_DECAY = 0.2
+ADAM_BETAS = (0.8, 0.95)
+WARMUP_RATIO = 0.0
 WARMDOWN_RATIO = 0.5
 FINAL_LR_FRAC = 0.0
 
-DEPTH = 8
-DEVICE_BATCH_SIZE = 8  # Modified to ensure it fits in the GPU memory
-FINAL_EVAL_BATCH_SIZE = 128
+DEPTH = {depth}
+DEVICE_BATCH_SIZE = {batch_size_mlx}
+FINAL_EVAL_BATCH_SIZE = 256
 STARTUP_EXCLUDE_STEPS = 1
 
 # ---------------------------------------------------------------------------
@@ -379,7 +390,7 @@ vocab_size = tokenizer.get_vocab_size()
 train_loader = make_dataloader(tokenizer, DEVICE_BATCH_SIZE, MAX_SEQ_LEN, "train")
 x, y, epoch = next(train_loader)
 t_data = time.time()
-print(f"Data/tokenizer loaded in {t_data - t_start:.1f}s")
+print(f"Data/tokenizer loaded in {{t_data - t_start:.1f}}s")
 
 model_dim = ((DEPTH * ASPECT_RATIO + HEAD_DIM - 1) // HEAD_DIM) * HEAD_DIM
 config = GPTConfig(
@@ -406,7 +417,7 @@ optimizer = AdamW(
 
 loss_grad_fn = nn.value_and_grad(model, lambda model, inputs, targets: model(inputs, targets=targets))
 
-print(f"Time budget: {TIME_BUDGET}s | Grad accum: {grad_accum_steps}")
+print(f"Time budget: {{TIME_BUDGET}}s | Grad accum: {{grad_accum_steps}}")
 
 # ---------------------------------------------------------------------------
 # Training loop
@@ -427,7 +438,7 @@ while True:
         mx.eval(loss, grads)
         if t_compiled is None:
             t_compiled = time.time()
-            print(f"Model compiled in {t_compiled - t_data:.1f}s")
+            print(f"Model compiled in {{t_compiled - t_data:.1f}}s")
         train_loss = loss
         if accum_grads is None:
             accum_grads = grads
@@ -461,9 +472,9 @@ while True:
     remaining = max(0.0, TIME_BUDGET - total_training_time)
 
     print(
-        f"\rstep {step:05d} ({pct_done:.1f}%) | loss: {debiased_smooth_loss:.6f} | "
-        f"lrm: {lrm:.2f} | dt: {dt*1000:.0f}ms | tok/sec: {tok_per_sec:,} | "
-        f"epoch: {epoch} | remaining: {remaining:.0f}s    ",
+        f"\rstep {{step:05d}} ({{pct_done:.1f}}%) | loss: {{debiased_smooth_loss:.6f}} | "
+        f"lrm: {{lrm:.2f}} | dt: {{dt*1000:.0f}}ms | tok/sec: {{tok_per_sec:,}} | "
+        f"epoch: {{epoch}} | remaining: {{remaining:.0f}}s    ",
         end="", flush=True,
     )
 
@@ -483,18 +494,18 @@ t_train = time.time()
 
 total_tokens = step * TOTAL_BATCH_SIZE
 print("Starting final eval...")
-print(f"Final eval batch size: {FINAL_EVAL_BATCH_SIZE}")
+print(f"Final eval batch size: {{FINAL_EVAL_BATCH_SIZE}}")
 val_bpb = evaluate_bpb(model, tokenizer, FINAL_EVAL_BATCH_SIZE)
 t_eval = time.time()
 
 peak_vram_mb = get_peak_memory_mb()
 
 print("---")
-print(f"val_bpb:          {val_bpb:.6f}")
-print(f"training_seconds: {total_training_time:.1f}")
-print(f"total_seconds:    {t_eval - t_start:.1f}")
-print(f"peak_vram_mb:     {peak_vram_mb:.1f}")
-print(f"total_tokens_M:   {total_tokens / 1e6:.1f}")
-print(f"num_steps:        {step}")
-print(f"num_params_M:     {num_params / 1e6:.1f}")
-print(f"depth:            {DEPTH}")
+print(f"val_bpb:          {{val_bpb:.6f}}")
+print(f"training_seconds: {{total_training_time:.1f}}")
+print(f"total_seconds:    {{t_eval - t_start:.1f}}")
+print(f"peak_vram_mb:     {{peak_vram_mb:.1f}}")
+print(f"total_tokens_M:   {{total_tokens / 1e6:.1f}}")
+print(f"num_steps:        {{step}}")
+print(f"num_params_M:     {{num_params / 1e6:.1f}}")
+print(f"depth:            {{DEPTH}}")

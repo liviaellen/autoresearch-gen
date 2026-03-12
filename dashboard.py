@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 import sys
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -133,6 +134,19 @@ def load_tsv(path: Path) -> pd.DataFrame | None:
 
 st.set_page_config(page_title="Experiment Tracker", layout="wide", page_icon=":microscope:")
 
+# ── Auto-refresh ───────────────────────────────────────────────────────────
+
+REFRESH_INTERVALS = {"Off": 0, "5s": 5, "10s": 10, "30s": 30, "60s": 60}
+
+
+def _file_mtime(path: Path) -> float:
+    """Get file modification time, 0 if missing."""
+    try:
+        return path.stat().st_mtime
+    except (FileNotFoundError, OSError):
+        return 0.0
+
+
 # ── Sidebar: experiment picker ──────────────────────────────────────────────
 
 experiments = discover_experiments()
@@ -154,6 +168,32 @@ results_df = load_tsv(exp_dir / "results.tsv")
 
 # Pick the best available dataframe
 df = experiments_df if experiments_df is not None else results_df
+
+# ── Auto-refresh controls ──────────────────────────────────────────────────
+st.sidebar.markdown("---")
+st.sidebar.markdown("**Live refresh**")
+refresh_label = st.sidebar.select_slider("Interval", options=list(REFRESH_INTERVALS.keys()), value="Off")
+refresh_secs = REFRESH_INTERVALS[refresh_label]
+
+if st.sidebar.button("Refresh now"):
+    st.rerun()
+
+# Track file modification times for smart refresh
+_exp_mtime = _file_mtime(exp_dir / "experiments.tsv")
+_res_mtime = _file_mtime(exp_dir / "results.tsv")
+
+# Auto-rerun on interval
+if refresh_secs > 0:
+    # Store last known mtimes in session state
+    mtime_key = f"_mtime_{selected_name}"
+    last_mtimes = st.session_state.get(mtime_key, (0.0, 0.0))
+    st.session_state[mtime_key] = (_exp_mtime, _res_mtime)
+
+    # Show countdown
+    placeholder = st.sidebar.empty()
+    placeholder.caption(f"Next refresh in {refresh_secs}s")
+    time.sleep(refresh_secs)
+    st.rerun()
 
 st.sidebar.markdown("---")
 if meta.get("target"):
@@ -515,3 +555,65 @@ if primary and primary in display_df.columns:
     st.dataframe(styled, use_container_width=True, height=500)
 else:
     st.dataframe(display_df, use_container_width=True, height=500)
+
+# ── Experiment detail viewer ──────────────────────────────────────────────
+
+if has_description and primary and len(df) > 1:
+    st.markdown("---")
+    st.subheader("Experiment Detail")
+
+    exp_options = df.dropna(subset=[primary]).apply(
+        lambda r: f"#{int(r['#'])} — {r.get('description', '')[:60]} ({primary}={r[primary]:.4f})", axis=1
+    ).tolist()
+    if exp_options:
+        selected_exp = st.selectbox("Select experiment", exp_options)
+        exp_num = int(selected_exp.split("#")[1].split(" ")[0])
+        exp_row = df[df["#"] == exp_num].iloc[0]
+
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.markdown("**Metrics**")
+            detail_data = {c: f"{exp_row[c]:,.4f}" for c in metric_cols if pd.notna(exp_row.get(c))}
+            st.json(detail_data)
+        with col_b:
+            st.markdown("**Info**")
+            info_data = {}
+            if has_status:
+                info_data["Status"] = str(exp_row.get("status", "—"))
+            if has_description:
+                info_data["Description"] = str(exp_row.get("description", "—"))
+            if "commit" in df.columns:
+                info_data["Commit"] = str(exp_row.get("commit", "—"))
+            st.json(info_data)
+
+# ── Multi-experiment comparison ───────────────────────────────────────────
+
+if len(experiments) > 1:
+    st.markdown("---")
+    st.subheader("Cross-Experiment Comparison")
+
+    compare_names = st.multiselect("Compare experiments", exp_names, default=exp_names[:min(4, len(exp_names))])
+    if compare_names:
+        compare_data = []
+        for name in compare_names:
+            cdir = EXPERIMENTS_DIR / name
+            c_results = load_tsv(cdir / "results.tsv")
+            c_experiments = load_tsv(cdir / "experiments.tsv")
+            c_df = c_results if c_results is not None else c_experiments
+            c_meta = parse_program_md(cdir / "program.md")
+            if c_df is not None:
+                c_primary = c_meta.get("primary_metric", primary)
+                if c_primary and c_primary in c_df.columns:
+                    c_valid = pd.to_numeric(c_df[c_primary], errors="coerce").dropna()
+                    c_dir = c_meta.get("direction") or metric_direction(c_primary)
+                    c_best = c_valid.min() if c_dir == "lower" else c_valid.max()
+                    c_baseline = c_valid.iloc[0] if len(c_valid) > 0 else None
+                    compare_data.append({
+                        "Experiment": name,
+                        "Metric": c_primary,
+                        "Baseline": f"{c_baseline:.4f}" if c_baseline is not None else "—",
+                        "Best": f"{c_best:.4f}",
+                        "Iterations": len(c_df),
+                    })
+        if compare_data:
+            st.dataframe(pd.DataFrame(compare_data), use_container_width=True)
