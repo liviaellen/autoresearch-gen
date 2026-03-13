@@ -46,9 +46,7 @@ class GatedConvMixer(nn.Module):
         super().__init__()
         n = config.n_embd
         self.K = kernel_size
-        # Group conv: 128 groups of 4 channels each for some cross-channel mixing
-        self.n_groups = n // 4
-        self.conv = nn.Conv1d(n, n, kernel_size=kernel_size, padding=0, groups=self.n_groups, bias=False)
+        self.conv = nn.Conv1d(n, n, kernel_size=kernel_size, padding=0, groups=n, bias=False)
         self.gate_proj = nn.Linear(n, n, bias=False)
         self.out_proj = nn.Linear(n, n, bias=False)
 
@@ -281,7 +279,7 @@ MATRIX_LR = 0.04
 SCALAR_LR = 0.5
 WEIGHT_DECAY = 0.1
 ADAM_BETAS = (0.8, 0.95)
-WARMUP_RATIO = 0.05
+WARMUP_RATIO = 0.10
 WARMDOWN_RATIO = 0.7
 FINAL_LR_FRAC = 0.0
 
