@@ -89,11 +89,9 @@ class GPT(nn.Module):
         self.config = config
         self.wte = nn.Embedding(config.vocab_size, config.n_embd)
         # Multi-scale kernels for speed/context tradeoff
-        kernel_sizes = [3, 7, 15, 31, 3, 7, 15, 31, 3, 7, 15, 31][:config.n_layer]
+        kernel_sizes = [3, 7, 15, 31, 63, 127, 15, 31][:config.n_layer]
         self.blocks = [Block(config, kernel_size=kernel_sizes[i]) for i in range(config.n_layer)]
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
-        self.resid_lambdas = mx.ones((config.n_layer,), dtype=mx.float32)
-        self.x0_lambdas = mx.zeros((config.n_layer,), dtype=mx.float32)
 
     def init_weights(self):
         n_embd = self.config.n_embd
@@ -114,9 +112,6 @@ class GPT(nn.Module):
             m.out_proj.weight = mx.zeros_like(m.out_proj.weight).astype(mx.bfloat16)
             block.mlp.c_fc.weight = mx.random.uniform(-scale, scale, block.mlp.c_fc.weight.shape).astype(mx.bfloat16)
             block.mlp.c_proj.weight = mx.zeros_like(block.mlp.c_proj.weight).astype(mx.bfloat16)
-
-        self.resid_lambdas = mx.ones((self.config.n_layer,), dtype=mx.float32)
-        self.x0_lambdas = mx.full((self.config.n_layer,), 0.1, dtype=mx.float32)
 
     def __call__(self, idx, targets=None, reduction="mean"):
         _, seq_len = idx.shape
@@ -175,16 +170,6 @@ class AdamW:
             elif "lm_head" in path:
                 self.param_config[path] = {
                     "lr": unembedding_lr * dmodel_lr_scale, "betas": adam_betas,
-                    "eps": 1e-10, "weight_decay": 0.0,
-                }
-            elif "resid_lambdas" in path:
-                self.param_config[path] = {
-                    "lr": scalar_lr * 0.01, "betas": adam_betas,
-                    "eps": 1e-10, "weight_decay": 0.0,
-                }
-            elif "x0_lambdas" in path:
-                self.param_config[path] = {
-                    "lr": scalar_lr, "betas": (0.96, 0.95),
                     "eps": 1e-10, "weight_decay": 0.0,
                 }
             else:
@@ -273,7 +258,7 @@ HEAD_DIM = 128
 TOTAL_BATCH_SIZE = 2**13
 EMBEDDING_LR = 0.6
 UNEMBEDDING_LR = 0.004
-MATRIX_LR = 0.004
+MATRIX_LR = 0.003
 SCALAR_LR = 0.5
 WEIGHT_DECAY = 0.1
 ADAM_BETAS = (0.8, 0.95)
