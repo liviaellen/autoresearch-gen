@@ -120,7 +120,7 @@ class GPT(nn.Module):
         x = norm(x)
 
         logits = self.lm_head(x).astype(mx.float32)
-        logits = 15.0 * mx.tanh(logits / 15.0)
+        # logits = 15.0 * mx.tanh(logits / 15.0)  # No logit cap
 
         if targets is None:
             return logits
@@ -132,10 +132,7 @@ class GPT(nn.Module):
         if reduction == "none":
             return ce
         denom = mx.maximum(mx.sum(valid), 1)
-        main_loss = mx.sum(ce) / denom
-        # z-loss: penalize large logits for stability
-        z_loss = 1e-4 * mx.mean(mx.logsumexp(logits, axis=-1) ** 2)
-        return main_loss + z_loss
+        return mx.sum(ce) / denom
 
 
 # ---------------------------------------------------------------------------
