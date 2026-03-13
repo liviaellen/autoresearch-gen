@@ -95,12 +95,14 @@ class GPT(nn.Module):
         self.wte.weight = (mx.random.normal(self.wte.weight.shape) * 0.5).astype(mx.bfloat16)
         self.lm_head.weight = (mx.random.normal(self.lm_head.weight.shape) * 0.001).astype(mx.bfloat16)
 
-        for block in self.blocks:
+        for layer_idx, block in enumerate(self.blocks):
             m = block.mixer
             K = m.K
             n = config.n_embd
-            # Per-channel decay rates: uniformly spaced in [0.8, 0.99]
-            rates = mx.linspace(0.8, 0.99, n)
+            # Per-channel decay rates, shifted by layer (deeper = slower decay)
+            base_low = 0.8 + 0.02 * layer_idx / max(config.n_layer - 1, 1)
+            base_high = min(0.99, 0.95 + 0.01 * layer_idx / max(config.n_layer - 1, 1))
+            rates = mx.linspace(base_low, base_high, n)
             k_range = mx.arange(K, dtype=mx.float32)
             # Build per-channel kernels: shape (n, K)
             kernels = mx.power(rates[:, None], k_range[None, :])
@@ -127,7 +129,7 @@ class GPT(nn.Module):
 
         valid = targets != -1
         targets_safe = mx.where(valid, targets, mx.zeros_like(targets))
-        ce = nn.losses.cross_entropy(logits, targets_safe, reduction="none", label_smoothing=0.1)
+        ce = nn.losses.cross_entropy(logits, targets_safe, reduction="none")
         ce = ce * valid
         if reduction == "none":
             return ce
