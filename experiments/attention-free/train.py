@@ -39,42 +39,26 @@ def get_peak_memory_mb():
     return mx.get_peak_memory() / 1024 / 1024
 
 
-class GatedConvMixer(nn.Module):
-    """Token mixing via depthwise causal convolution + gating."""
+class Block(nn.Module):
+    """Fused conv+MLP block: conv for mixing, SwiGLU MLP for transform."""
 
     def __init__(self, config, kernel_size=15):
         super().__init__()
         n = config.n_embd
+        inner = 3 * n
         self.K = kernel_size
         self.conv = nn.Conv1d(n, n, kernel_size=kernel_size, padding=0, groups=n, bias=False)
+        self.c_fc = nn.Linear(n, inner, bias=False)
+        self.gate = nn.Linear(n, inner, bias=False)
+        self.c_proj = nn.Linear(inner, n, bias=False)
 
     def __call__(self, x):
-        B, T, D = x.shape
-        x_padded = mx.pad(x, [(0, 0), (self.K - 1, 0), (0, 0)])
-        return self.conv(x_padded)
-
-
-class MLP(nn.Module):
-    def __init__(self, config, expansion=3):
-        super().__init__()
-        inner = expansion * config.n_embd
-        self.c_fc = nn.Linear(config.n_embd, inner, bias=False)
-        self.gate = nn.Linear(config.n_embd, inner, bias=False)
-        self.c_proj = nn.Linear(inner, config.n_embd, bias=False)
-
-    def __call__(self, x):
-        return self.c_proj(nn.silu(self.gate(x)) * self.c_fc(x))
-
-
-class Block(nn.Module):
-    def __init__(self, config, kernel_size=15):
-        super().__init__()
-        self.mixer = GatedConvMixer(config, kernel_size=kernel_size)
-        self.mlp = MLP(config)
-
-    def __call__(self, x):
-        x = x + self.mixer(norm(x))
-        x = x + self.mlp(norm(x))
+        h = norm(x)
+        # Conv mixing
+        h_padded = mx.pad(h, [(0, 0), (self.K - 1, 0), (0, 0)])
+        h_conv = self.conv(h_padded)
+        # SwiGLU MLP on conv output
+        x = x + self.c_proj(nn.silu(self.gate(h_conv)) * self.c_fc(h_conv))
         return x
 
 
@@ -96,17 +80,15 @@ class GPT(nn.Module):
         self.lm_head.weight = (mx.random.normal(self.lm_head.weight.shape) * 0.001).astype(mx.bfloat16)
 
         for block in self.blocks:
-            m = block.mixer
-            K = m.K
+            K = block.K
             decay = mx.power(mx.array(0.9), mx.arange(K, dtype=mx.float32))
             decay = decay / mx.sum(decay)
-            m.conv.weight = mx.broadcast_to(
-                decay.reshape(1, K, 1), m.conv.weight.shape
+            block.conv.weight = mx.broadcast_to(
+                decay.reshape(1, K, 1), block.conv.weight.shape
             ).astype(mx.bfloat16)
-            # gate_proj removed — mixer is just depthwise conv
-            block.mlp.c_fc.weight = mx.random.uniform(-scale, scale, block.mlp.c_fc.weight.shape).astype(mx.bfloat16)
-            block.mlp.gate.weight = mx.random.uniform(-scale, scale, block.mlp.gate.weight.shape).astype(mx.bfloat16)
-            block.mlp.c_proj.weight = mx.zeros_like(block.mlp.c_proj.weight).astype(mx.bfloat16)
+            block.c_fc.weight = mx.random.uniform(-scale, scale, block.c_fc.weight.shape).astype(mx.bfloat16)
+            block.gate.weight = mx.random.uniform(-scale, scale, block.gate.weight.shape).astype(mx.bfloat16)
+            block.c_proj.weight = mx.zeros_like(block.c_proj.weight).astype(mx.bfloat16)
 
     def __call__(self, idx, targets=None, reduction="mean"):
         _, seq_len = idx.shape
@@ -252,7 +234,7 @@ HEAD_DIM = 128
 
 TOTAL_BATCH_SIZE = 2**13
 EMBEDDING_LR = 0.6
-UNEMBEDDING_LR = 0.008
+UNEMBEDDING_LR = 0.004
 MATRIX_LR = 0.003
 SCALAR_LR = 0.5
 WEIGHT_DECAY = 0.1
