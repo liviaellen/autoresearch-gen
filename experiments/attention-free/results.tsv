@@ -11,3 +11,24 @@ fab8ab2	1.571361	-	keep	Exp29: warmup=10% — 1.571
 8569fa5	1.562743	-	keep	Exp30: warmup=15% — 1.563
 288d32d	1.559071	-	keep	Exp31: warmup=20% — 1.559
 d0b0a47	1.557169	-	keep	Exp32: warmup=25% — 1.557
+11f1925	1.553161	-	keep	Exp37: MATRIX_LR=0.03 — 1.553
+1507a3b	1.533986	-	keep	Exp38: MATRIX_LR=0.02 — 1.534
+3ee4b76	1.527339	-	keep	Exp39: MATRIX_LR=0.015 — 1.527
+5e17b89	1.518577	-	keep	Exp40: MATRIX_LR=0.01 — 1.519
+918c7c4	1.514104	-	keep	Exp41: MATRIX_LR=0.007 — 1.514
+530ec52	1.512451	-	keep	Exp42: MATRIX_LR=0.005 — 1.512
+f208d1d	1.490584	-	keep	Exp50: No resid lambdas — 1.491, 3020 steps
+d8c9a03	1.477295	-	keep	Exp51: MATRIX_LR=0.003 — 1.477
+47fbc61	1.472030	-	keep	Exp54: Larger kernels [3,7,15,31,63,127,15,31] — 1.472
+f9de17b	1.454028	-	keep	Exp58: SwiGLU MLP 4x — 1.454
+b44e965	1.452454	-	keep	Exp66: Confirmed SwiGLU 4x baseline — 1.452
+a4a5652	1.440300	-	keep	Exp70: SwiGLU 3x — 1.440
+0137784	1.431394	-	keep	Exp76: conv_lr=matrix_lr -- 1.431
+7767ade	1.427238	-	keep	Exp77: conv_lr=2x matrix_lr -- 1.427
+14910a5	1.408966	-	keep	Exp82: No out_proj in mixer -- 1.409
+99306d0	1.406277	-	keep	Exp83: Pure depthwise conv mixer -- 1.406
+753fcfa	1.403011	-	keep	Exp88: Embedding init std=0.5 -- 1.403
+8d80ecb	1.403900	-	keep	Exp104: Per-channel varied decays -- 1.404
+e566e07	1.399304	-	keep	Exp114: No logit cap -- 1.399
+85b3b8f	1.388263	-	keep	Exp116: conv_lr=3x -- 1.388
+b5b4695	1.386619	-	keep	Exp126: Per-layer decay ranges -- 1.387

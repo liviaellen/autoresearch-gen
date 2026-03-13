@@ -29,3 +29,100 @@ fab8ab2	1.571361	-	keep	Exp29: warmup=10% — new best 1.571
 288d32d	1.559071	-	keep	Exp31: warmup=20% — new best 1.559
 d0b0a47	1.557169	-	keep	Exp32: warmup=25% — 1.557
 1df381a	1.559284	-	revert	Exp33: warmup=30% — flattening
+1edc0fb	1.591740	-	revert	Exp34: warmdown=0.5 — worse, less cooldown
+dde8131	1.634253	-	revert	Exp35: warmdown=75% — too much cooldown
+c4f7090	1.587947	-	revert	Exp36: dim=640 4x MLP — slower, worse
+11f1925	1.553161	-	keep	Exp37: MATRIX_LR=0.03 — new best 1.553
+1507a3b	1.533986	-	keep	Exp38: MATRIX_LR=0.02 — new best 1.534
+3ee4b76	1.527339	-	keep	Exp39: MATRIX_LR=0.015 — 1.527
+5e17b89	1.518577	-	keep	Exp40: MATRIX_LR=0.01 — 1.519
+918c7c4	1.514104	-	keep	Exp41: MATRIX_LR=0.007 — 1.514
+530ec52	1.512451	-	keep	Exp42: MATRIX_LR=0.005 — 1.512
+ca1e972	1.515960	-	revert	Exp43: LR=0.003 — too low
+9d3eed8	1.513386	-	revert	Exp44: emb_lr=0.3 — tied
+f89109f	1.514276	-	revert	Exp45: emb_lr=0.1 — tied
+b73efc5	1.518302	-	revert	Exp46: lower unemb/scalar LR — worse
+9d36d38	1.599550	-	revert	Exp47: 12 layers — dim scaled to 768, too big
+3b4f94b	1.525927	-	revert	Exp48: 12 layers dim=512 4x MLP — slower, worse
+c38c2f4	1.527483	-	revert	Exp49: GELU — slower, worse
+f208d1d	1.490584	-	keep	Exp50: Remove resid/x0 lambdas — HUGE improvement 1.491, 3020 steps
+d8c9a03	1.477295	-	keep	Exp51: MATRIX_LR=0.003 — 1.477, 3037 steps
+416b1e6	1.620824	-	revert	Exp52: MATRIX_LR=0.002 — too low, 1.621
+92325b5	2.635951	-	revert	Exp53: MATRIX_LR=0.004 — hung at step 49 (962s), corrupted
+47fbc61	1.472030	-	keep	Exp54: Larger kernels [3,7,15,31,63,127,15,31] + cleanup — 1.472
+308fe03	1.498483	-	revert	Exp55: Kernels too large [3,7,15,63,127,255,63,127] — too slow, 2470 steps
+b7a3c55	1.483766	-	revert	Exp56: Pyramid kernels — worse than Exp54
+8c42e06	1.491917	-	revert	Exp57: Dual conv — slower, worse
+f9de17b	1.454028	-	keep	Exp58: SwiGLU 4x — 1.454, 37.9M params, 2729 steps
+788eb13	1.471283	-	revert	Exp59: SwiGLU 5x — slower, 44.2M params, worse
+8e386f1	1.473053	-	revert	Exp60: MATRIX_LR=0.005 with SwiGLU — worse
+8194474	1.459576	-	revert	Exp61: Logit cap 30 — slightly worse
+56c14ff	3.552015	-	revert	Exp62: Weight tying — terrible, 3.552
+2376081	1.528508	-	revert	Exp63: warmdown=0.6 — worse (slow run, 1626 steps)
+95615ed	1.818852	-	revert	Exp64: 10 layers — too slow (504 steps), 1.819
+7da4c75	1.519321	-	revert	Exp65: Re-run baseline — system slow (1653 steps), unreliable
+b44e965	1.452454	-	keep	Exp66: Re-run confirms Exp58 — 1.452, 2763 steps
+fe1575f	1.464267	-	revert	Exp67: betas=(0.9,0.95) — slightly worse
+2352fc1	1.457918	-	revert	Exp68: wd=0.05 — slightly worse
+ab767c8	1.460298	-	revert	Exp69: MATRIX_LR=0.004 — worse than 0.003
+a4a5652	1.440300	-	keep	Exp70: SwiGLU 3x — 1.440, 31.6M params, 3102 steps
+52c9b2f	1.445195	-	revert	Exp71: SwiGLU 2x — too small, 25.3M params, slightly worse
+487faf7	1.455761	-	revert	Exp72: MATRIX_LR=0.005 — worse
+3308ab1	1.466207	-	revert	Exp73: batch=2^12 — too noisy, 5819 steps but worse
+db151ef	1.440154	-	revert	Exp74: warmup=15% -- tied with 25%
+55d7d4e	1.489622	-	revert	Exp75: SiLU gate (no gate_proj) -- worse, 1.490
+0137784	1.431394	-	keep	Exp76: conv LR = matrix_lr -- 1.431, 3099 steps
+7767ade	1.427238	-	keep	Exp77: conv LR = 2x matrix_lr -- 1.427
+ee37ce5	1.427833	-	revert	Exp78: conv LR = 3x -- tied with 2x
+8a035be	1.863818	-	revert	Exp79: SiLU gating in mixer -- terrible, 1.864
+1b64d7f	1.428844	-	revert	Exp80: conv weight_decay -- tied
+10b7c4c	1.429988	-	revert	Exp81: Small tail kernels -- tied
+14910a5	1.408966	-	keep	Exp82: Remove out_proj from mixer -- 1.409, 29.5M params, 3106 steps
+99306d0	1.406277	-	keep	Exp83: Pure depthwise conv -- 1.406, 27.4M, 3371 steps
+04714b7	1.423439	-	revert	Exp84: MATRIX_LR=0.005 -- worse
+0c3302d	1.416897	-	revert	Exp85: expansion=4 -- slower, worse
+50e61c4	1.425600	-	revert	Exp86: dim=640 -- too slow (2576 steps), worse
+fcae672	1.410703	-	revert	Exp87: dim=384 -- faster (3958 steps) but slightly worse
+753fcfa	1.403011	-	keep	Exp88: Embedding init std=0.5 -- 1.403, 3492 steps
+bee8b8d	1.403000	-	revert	Exp89: emb std=0.25 -- tied with 0.5
+3505958	1.414672	-	revert	Exp90: conv decay=0.5 -- worse
+1d24de4	1.406874	-	revert	Exp91: EMBEDDING_LR=0.3 -- slightly worse
+05b7e22	1.406487	-	revert	Exp92: UNEMBEDDING_LR=0.008 -- slightly worse
+25580fa	1.421900	-	revert	Exp93: Fused conv+MLP -- worse, single residual hurts
+517949f	1.409647	-	revert	Exp94: Grad clipping -- slower, worse
+202d7c7	1.406840	-	revert	Exp95: warmup=30% -- slightly worse
+6e86c0b	1.409411	-	revert	Exp96: Parallel conv+MLP -- slightly worse
+2454663	1.415194	-	revert	Exp97: MATRIX_LR=0.002 -- worse
+01b5619	1.597492	-	revert	Exp98: 12 layers dim=384 -- too slow, worse
+d9c379f	1.427534	-	revert	Exp99: EMBEDDING_LR=1.0 -- worse
+20efa52	1.430742	-	revert	Exp100: Pointwise proj after conv -- worse
+b7b7bce	nan	-	crash	Exp101: No norm before MLP -- NaN divergence
+49228ea	1.428599	-	revert	Exp102: 1/n_layer residual scale -- worse
+9ba9383	1.414392	-	revert	Exp103: Re-run baseline -- 1.414 (variance)
+8d80ecb	1.403900	-	keep	Exp104: Per-channel varied decays [0.8,0.99] -- 1.404
+90f3147	1.411640	-	revert	Exp105: decays [0.5,0.999] -- too wide, worse
+2c65db3	1.412566	-	revert	Exp106: lm_head std=0.01 -- slightly worse
+be7dbc1	1.407007	-	revert	Exp107: MLP init 1/sqrt(d) -- tied
+393c8f5	1.430534	-	revert	Exp108: No post-emb norm -- worse
+824dccc	1.429251	-	revert	Exp109: Stacked conv -- slower, worse
+77ab77d	1.414921	-	revert	Exp110: GeGLU -- slightly worse than SwiGLU
+cff5681	1.452622	-	revert	Exp111: ReluSquared gating -- worse
+e764f82	1.434999	-	revert	Exp112: batch=2^14 -- too few steps (1297), worse
+2eae13e	1.409052	-	revert	Exp113: z-loss -- no improvement
+e566e07	1.399304	-	keep	Exp114: No logit cap -- 1.399! 3619 steps
+4995b0b	1.411542	-	revert	Exp115: MATRIX_LR=0.004 -- worse
+85b3b8f	1.388263	-	keep	Exp116: conv LR = 3x matrix_lr -- 1.388! 3852 steps
+d8d1473	1.388600	-	revert	Exp117: conv LR = 5x -- tied with 3x
+95cc21c	1.390094	-	revert	Exp118: conv LR = 4x -- tied
+215525d	1.393806	-	revert	Exp119: EMBEDDING_LR=0.4 -- slightly worse
+cc459d6	1.392294	-	keep	Exp120: Re-run confirms ~1.390 -- 3723 steps
+5543c92	1.405804	-	revert	Exp121: K=255 -- too slow
+530422d	1.394091	-	revert	Exp122: warmdown=0.65 -- tied
+3196de1	1.394371	-	revert	Exp123: c_proj small init -- tied
+e85c8d8	1.390353	-	revert	Exp124: FINAL_LR_FRAC=0.01 -- tied
+0804920	1.682317	-	revert	Exp125: Label smoothing -- terrible
+b5b4695	1.386619	-	keep	Exp126: Per-layer decay ranges -- 1.387! 3944 steps
+4c54365	1.392930	-	revert	Exp127: Re-run -- 1.393 (variance)
+9dedd0f	1.397488	-	revert	Exp128: Skip from embedding -- slightly worse
+e0f44f0	1.396876	-	revert	Exp129: beta2=0.99 -- worse
+7319b92	1.396653	-	revert	Exp130: seed=123 -- within variance
