@@ -246,11 +246,11 @@ class AdamW:
 # Hyperparameters
 # ---------------------------------------------------------------------------
 
-ASPECT_RATIO = 32
+ASPECT_RATIO = 64
 HEAD_DIM = 128
 
 TOTAL_BATCH_SIZE = 2**13
-EMBEDDING_LR = 0.6
+EMBEDDING_LR = 1.0
 UNEMBEDDING_LR = 0.004
 MATRIX_LR = 0.003
 SCALAR_LR = 0.5
@@ -260,7 +260,7 @@ WARMUP_RATIO = 0.25
 WARMDOWN_RATIO = 0.7
 FINAL_LR_FRAC = 0.0
 
-DEPTH = 12
+DEPTH = 8
 DEVICE_BATCH_SIZE = 4
 FINAL_EVAL_BATCH_SIZE = 256
 STARTUP_EXCLUDE_STEPS = 1
