@@ -67,7 +67,7 @@ class MLP(nn.Module):
 
     def __call__(self, x):
         x = self.c_fc(x)
-        x = nn.gelu(x)  # GELU activation
+        x = mx.maximum(x, 0) ** 2  # ReluSquared
         return self.c_proj(x)
 
 
@@ -123,9 +123,7 @@ class GPT(nn.Module):
 
         x = self.wte(idx)
         x = norm(x)
-        x0 = x
-        for i, block in enumerate(self.blocks):
-            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+        for block in self.blocks:
             x = block(x)
         x = norm(x)
 
