@@ -256,7 +256,7 @@ HEAD_DIM = 128
 
 TOTAL_BATCH_SIZE = 2**13
 EMBEDDING_LR = 0.6
-UNEMBEDDING_LR = 0.004
+UNEMBEDDING_LR = 0.006
 MATRIX_LR = 0.003
 SCALAR_LR = 0.5
 WEIGHT_DECAY = 0.1
@@ -287,7 +287,7 @@ def get_lr_multiplier(progress):
 # ---------------------------------------------------------------------------
 
 t_start = time.time()
-mx.random.seed(123)
+mx.random.seed(42)
 
 tokenizer = Tokenizer.from_directory()
 vocab_size = tokenizer.get_vocab_size()
