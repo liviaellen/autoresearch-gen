@@ -98,11 +98,14 @@ class GPT(nn.Module):
         for block in self.blocks:
             m = block.mixer
             K = m.K
-            decay = mx.power(mx.array(0.9), mx.arange(K, dtype=mx.float32))
-            decay = decay / mx.sum(decay)
-            m.conv.weight = mx.broadcast_to(
-                decay.reshape(1, K, 1), m.conv.weight.shape
-            ).astype(mx.bfloat16)
+            n = config.n_embd
+            # Per-channel decay rates: uniformly spaced in [0.8, 0.99]
+            rates = mx.linspace(0.8, 0.99, n)
+            k_range = mx.arange(K, dtype=mx.float32)
+            # Build per-channel kernels: shape (n, K)
+            kernels = mx.power(rates[:, None], k_range[None, :])
+            kernels = kernels / mx.sum(kernels, axis=1, keepdims=True)
+            m.conv.weight = kernels.reshape(n, K, 1).astype(mx.bfloat16)
             block.mlp.c_fc.weight = mx.random.uniform(-scale, scale, block.mlp.c_fc.weight.shape).astype(mx.bfloat16)
             block.mlp.gate.weight = mx.random.uniform(-scale, scale, block.mlp.gate.weight.shape).astype(mx.bfloat16)
             block.mlp.c_proj.weight = mx.zeros_like(block.mlp.c_proj.weight).astype(mx.bfloat16)
