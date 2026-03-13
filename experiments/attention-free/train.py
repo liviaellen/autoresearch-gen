@@ -59,7 +59,7 @@ class GatedConvMixer(nn.Module):
 
 
 class MLP(nn.Module):
-    def __init__(self, config, expansion=3):
+    def __init__(self, config, expansion=2):
         super().__init__()
         inner = expansion * config.n_embd
         self.c_fc = nn.Linear(config.n_embd, inner, bias=False)
