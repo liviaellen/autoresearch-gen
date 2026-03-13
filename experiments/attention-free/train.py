@@ -117,10 +117,9 @@ class GPT(nn.Module):
 
         x = self.wte(idx)
         x = norm(x)
-        x0 = x
         for block in self.blocks:
             x = block(x)
-        x = norm(x + x0)
+        x = norm(x)
 
         logits = self.lm_head(x).astype(mx.float32)
         # logits = 15.0 * mx.tanh(logits / 15.0)  # No logit cap
@@ -261,7 +260,7 @@ UNEMBEDDING_LR = 0.004
 MATRIX_LR = 0.003
 SCALAR_LR = 0.5
 WEIGHT_DECAY = 0.1
-ADAM_BETAS = (0.8, 0.95)
+ADAM_BETAS = (0.8, 0.99)
 WARMUP_RATIO = 0.25
 WARMDOWN_RATIO = 0.7
 FINAL_LR_FRAC = 0.0
