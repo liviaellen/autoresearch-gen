@@ -40,18 +40,19 @@ def get_peak_memory_mb():
 
 
 class ConvMixer(nn.Module):
-    """Token mixing via depthwise causal convolution."""
+    """Token mixing via depthwise causal convolution + pointwise projection."""
 
     def __init__(self, config, kernel_size=15):
         super().__init__()
         n = config.n_embd
         self.K = kernel_size
         self.conv = nn.Conv1d(n, n, kernel_size=kernel_size, padding=0, groups=n, bias=False)
+        self.proj = nn.Linear(n, n, bias=False)
 
     def __call__(self, x):
         B, T, D = x.shape
         x_padded = mx.pad(x, [(0, 0), (self.K - 1, 0), (0, 0)])
-        return self.conv(x_padded)
+        return self.proj(self.conv(x_padded))
 
 
 class MLP(nn.Module):
@@ -103,6 +104,7 @@ class GPT(nn.Module):
             m.conv.weight = mx.broadcast_to(
                 decay.reshape(1, K, 1), m.conv.weight.shape
             ).astype(mx.bfloat16)
+            m.proj.weight = mx.zeros_like(m.proj.weight).astype(mx.bfloat16)
             block.mlp.c_fc.weight = mx.random.uniform(-scale, scale, block.mlp.c_fc.weight.shape).astype(mx.bfloat16)
             block.mlp.gate.weight = mx.random.uniform(-scale, scale, block.mlp.gate.weight.shape).astype(mx.bfloat16)
             block.mlp.c_proj.weight = mx.zeros_like(block.mlp.c_proj.weight).astype(mx.bfloat16)
@@ -250,7 +252,7 @@ ASPECT_RATIO = 64
 HEAD_DIM = 128
 
 TOTAL_BATCH_SIZE = 2**13
-EMBEDDING_LR = 1.0
+EMBEDDING_LR = 0.6
 UNEMBEDDING_LR = 0.004
 MATRIX_LR = 0.003
 SCALAR_LR = 0.5
