@@ -59,7 +59,7 @@ class GatedConvMixer(nn.Module):
 
 
 class MLP(nn.Module):
-    def __init__(self, config, expansion=4):
+    def __init__(self, config, expansion=6):
         super().__init__()
         inner = expansion * config.n_embd
         self.c_fc = nn.Linear(config.n_embd, inner, bias=False)
@@ -67,7 +67,7 @@ class MLP(nn.Module):
 
     def __call__(self, x):
         x = self.c_fc(x)
-        x = mx.maximum(x, 0) ** 2  # ReluSquared
+        x = nn.gelu(x)  # GELU activation
         return self.c_proj(x)
 
 
@@ -269,7 +269,7 @@ class AdamW:
 # Hyperparameters
 # ---------------------------------------------------------------------------
 
-ASPECT_RATIO = 42
+ASPECT_RATIO = 64
 HEAD_DIM = 128
 
 TOTAL_BATCH_SIZE = 2**13
@@ -283,7 +283,7 @@ WARMUP_RATIO = 0.25
 WARMDOWN_RATIO = 0.7
 FINAL_LR_FRAC = 0.0
 
-DEPTH = 12
+DEPTH = 8
 DEVICE_BATCH_SIZE = 4
 FINAL_EVAL_BATCH_SIZE = 256
 STARTUP_EXCLUDE_STEPS = 1
