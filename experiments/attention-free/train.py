@@ -260,7 +260,7 @@ UNEMBEDDING_LR = 0.004
 MATRIX_LR = 0.003
 SCALAR_LR = 0.5
 WEIGHT_DECAY = 0.1
-ADAM_BETAS = (0.8, 0.99)
+ADAM_BETAS = (0.8, 0.95)
 WARMUP_RATIO = 0.25
 WARMDOWN_RATIO = 0.7
 FINAL_LR_FRAC = 0.0
@@ -287,7 +287,7 @@ def get_lr_multiplier(progress):
 # ---------------------------------------------------------------------------
 
 t_start = time.time()
-mx.random.seed(42)
+mx.random.seed(123)
 
 tokenizer = Tokenizer.from_directory()
 vocab_size = tokenizer.get_vocab_size()
