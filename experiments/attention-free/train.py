@@ -98,7 +98,7 @@ class GPT(nn.Module):
         for block in self.blocks:
             m = block.mixer
             K = m.K
-            decay = mx.power(mx.array(0.5), mx.arange(K, dtype=mx.float32))
+            decay = mx.power(mx.array(0.9), mx.arange(K, dtype=mx.float32))
             decay = decay / mx.sum(decay)
             m.conv.weight = mx.broadcast_to(
                 decay.reshape(1, K, 1), m.conv.weight.shape
@@ -251,7 +251,7 @@ ASPECT_RATIO = 64
 HEAD_DIM = 128
 
 TOTAL_BATCH_SIZE = 2**13
-EMBEDDING_LR = 0.6
+EMBEDDING_LR = 0.3
 UNEMBEDDING_LR = 0.004
 MATRIX_LR = 0.003
 SCALAR_LR = 0.5
