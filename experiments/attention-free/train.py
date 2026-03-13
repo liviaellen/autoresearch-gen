@@ -46,7 +46,9 @@ class GatedConvMixer(nn.Module):
         super().__init__()
         n = config.n_embd
         self.K = kernel_size
+        # Short conv for local patterns + main conv for longer range
         self.conv = nn.Conv1d(n, n, kernel_size=kernel_size, padding=0, groups=n, bias=False)
+        self.short_conv = nn.Conv1d(n, n, kernel_size=3, padding=0, groups=n, bias=False)
         self.gate_proj = nn.Linear(n, n, bias=False)
         self.out_proj = nn.Linear(n, n, bias=False)
 
@@ -54,8 +56,10 @@ class GatedConvMixer(nn.Module):
         B, T, D = x.shape
         x_padded = mx.pad(x, [(0, 0), (self.K - 1, 0), (0, 0)])
         conv_out = self.conv(x_padded)
+        x_padded_short = mx.pad(x, [(0, 0), (2, 0), (0, 0)])
+        short_out = self.short_conv(x_padded_short)
         gate = mx.sigmoid(self.gate_proj(x))
-        return self.out_proj(gate * conv_out)
+        return self.out_proj(gate * (conv_out + short_out))
 
 
 class MLP(nn.Module):
@@ -89,7 +93,7 @@ class GPT(nn.Module):
         self.config = config
         self.wte = nn.Embedding(config.vocab_size, config.n_embd)
         # Multi-scale kernels for speed/context tradeoff
-        kernel_sizes = [3, 7, 15, 31, 63, 127, 63, 31][:config.n_layer]
+        kernel_sizes = [3, 7, 15, 31, 63, 127, 15, 31][:config.n_layer]
         self.blocks = [Block(config, kernel_size=kernel_sizes[i]) for i in range(config.n_layer)]
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
 
@@ -107,6 +111,12 @@ class GPT(nn.Module):
             decay = decay / mx.sum(decay)
             m.conv.weight = mx.broadcast_to(
                 decay.reshape(1, K, 1), m.conv.weight.shape
+            ).astype(mx.bfloat16)
+            # Short conv init: simple uniform averaging
+            short_decay = mx.power(mx.array(0.9), mx.arange(3, dtype=mx.float32))
+            short_decay = short_decay / mx.sum(short_decay)
+            m.short_conv.weight = mx.broadcast_to(
+                short_decay.reshape(1, 3, 1), m.short_conv.weight.shape
             ).astype(mx.bfloat16)
             m.gate_proj.weight = mx.zeros_like(m.gate_proj.weight).astype(mx.bfloat16)
             m.out_proj.weight = mx.zeros_like(m.out_proj.weight).astype(mx.bfloat16)
