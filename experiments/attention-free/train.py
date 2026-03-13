@@ -63,7 +63,7 @@ class MLP(nn.Module):
         self.c_proj = nn.Linear(inner, config.n_embd, bias=False)
 
     def __call__(self, x):
-        return self.c_proj((mx.maximum(self.gate(x), 0) ** 2) * self.c_fc(x))
+        return self.c_proj(nn.silu(self.gate(x)) * self.c_fc(x))
 
 
 class Block(nn.Module):
@@ -252,7 +252,7 @@ class AdamW:
 ASPECT_RATIO = 64
 HEAD_DIM = 128
 
-TOTAL_BATCH_SIZE = 2**13
+TOTAL_BATCH_SIZE = 2**14
 EMBEDDING_LR = 0.6
 UNEMBEDDING_LR = 0.004
 MATRIX_LR = 0.003
@@ -264,7 +264,7 @@ WARMDOWN_RATIO = 0.7
 FINAL_LR_FRAC = 0.0
 
 DEPTH = 8
-DEVICE_BATCH_SIZE = 4
+DEVICE_BATCH_SIZE = 8
 FINAL_EVAL_BATCH_SIZE = 256
 STARTUP_EXCLUDE_STEPS = 1
 
