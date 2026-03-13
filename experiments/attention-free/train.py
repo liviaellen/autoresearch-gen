@@ -73,8 +73,8 @@ class Block(nn.Module):
         self.mlp = MLP(config)
 
     def __call__(self, x):
-        x = x + self.mixer(norm(x))
-        x = x + self.mlp(norm(x))
+        h = norm(x)
+        x = x + self.mixer(h) + self.mlp(h)
         return x
 
 
@@ -256,7 +256,7 @@ MATRIX_LR = 0.003
 SCALAR_LR = 0.5
 WEIGHT_DECAY = 0.1
 ADAM_BETAS = (0.8, 0.95)
-WARMUP_RATIO = 0.30
+WARMUP_RATIO = 0.25
 WARMDOWN_RATIO = 0.7
 FINAL_LR_FRAC = 0.0
 
