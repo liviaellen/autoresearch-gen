@@ -92,7 +92,7 @@ class GPT(nn.Module):
         n_embd = self.config.n_embd
         scale = 3**0.5 * n_embd**-0.5
 
-        self.wte.weight = (mx.random.normal(self.wte.weight.shape) * 1.0).astype(mx.bfloat16)
+        self.wte.weight = (mx.random.normal(self.wte.weight.shape) * 0.5).astype(mx.bfloat16)
         self.lm_head.weight = (mx.random.normal(self.lm_head.weight.shape) * 0.001).astype(mx.bfloat16)
 
         for block in self.blocks:
@@ -247,7 +247,7 @@ class AdamW:
 # Hyperparameters
 # ---------------------------------------------------------------------------
 
-ASPECT_RATIO = 48
+ASPECT_RATIO = 64
 HEAD_DIM = 128
 
 TOTAL_BATCH_SIZE = 2**13
