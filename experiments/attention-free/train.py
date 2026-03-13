@@ -117,9 +117,10 @@ class GPT(nn.Module):
 
         x = self.wte(idx)
         x = norm(x)
+        x0 = x
         for block in self.blocks:
             x = block(x)
-        x = norm(x)
+        x = norm(x + x0)
 
         logits = self.lm_head(x).astype(mx.float32)
         # logits = 15.0 * mx.tanh(logits / 15.0)  # No logit cap
