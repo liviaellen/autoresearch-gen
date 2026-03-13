@@ -256,7 +256,7 @@ MATRIX_LR = 0.003
 SCALAR_LR = 0.5
 WEIGHT_DECAY = 0.1
 ADAM_BETAS = (0.8, 0.95)
-WARMUP_RATIO = 0.25
+WARMUP_RATIO = 0.30
 WARMDOWN_RATIO = 0.7
 FINAL_LR_FRAC = 0.0
 
@@ -346,15 +346,6 @@ while True:
 
     if grad_accum_steps > 1:
         accum_grads = tree_map(lambda grad: grad * (1.0 / grad_accum_steps), accum_grads)
-
-    # Gradient clipping
-    flat_grads = tree_flatten(accum_grads)
-    grad_norm_sq = sum(mx.sum(g * g).item() for _, g in flat_grads)
-    grad_norm = grad_norm_sq ** 0.5
-    clip_val = 1.0
-    if grad_norm > clip_val:
-        scale = clip_val / grad_norm
-        accum_grads = tree_map(lambda g: g * scale, accum_grads)
 
     progress = min(total_training_time / TIME_BUDGET, 1.0)
     lrm = get_lr_multiplier(progress)
