@@ -73,8 +73,8 @@ class Block(nn.Module):
         self.mlp = MLP(config)
 
     def __call__(self, x):
-        h = norm(x)
-        x = x + self.mixer(h) + self.mlp(h)
+        x = x + self.mixer(norm(x))
+        x = x + self.mlp(norm(x))
         return x
 
 
@@ -252,7 +252,7 @@ HEAD_DIM = 128
 TOTAL_BATCH_SIZE = 2**13
 EMBEDDING_LR = 0.6
 UNEMBEDDING_LR = 0.004
-MATRIX_LR = 0.003
+MATRIX_LR = 0.002
 SCALAR_LR = 0.5
 WEIGHT_DECAY = 0.1
 ADAM_BETAS = (0.8, 0.95)
