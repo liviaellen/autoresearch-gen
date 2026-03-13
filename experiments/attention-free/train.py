@@ -89,7 +89,7 @@ class GPT(nn.Module):
         self.config = config
         self.wte = nn.Embedding(config.vocab_size, config.n_embd)
         # Multi-scale kernels for speed/context tradeoff
-        kernel_sizes = [3, 7, 15, 31, 63, 127, 15, 31][:config.n_layer]
+        kernel_sizes = [3, 7, 15, 63, 127, 255, 63, 127][:config.n_layer]
         self.blocks = [Block(config, kernel_size=kernel_sizes[i]) for i in range(config.n_layer)]
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
 
