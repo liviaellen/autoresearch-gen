@@ -11,7 +11,10 @@ Usage:
 
 from __future__ import annotations
 
+import datetime
+import json
 import re
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -147,6 +150,20 @@ def _file_mtime(path: Path) -> float:
         return 0.0
 
 
+# ── Sidebar: links ─────────────────────────────────────────────────────────
+
+st.sidebar.markdown(
+    '<a href="https://github.com/liviaellen/autoresearch-gen" target="_blank">'
+    '<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="20" style="vertical-align:middle"> '
+    "liviaellen/autoresearch-gen</a>"
+    " &nbsp; "
+    '<a href="https://x.com/ellen_in_sf" target="_blank">'
+    '<img src="https://abs.twimg.com/favicons/twitter.3.ico" width="18" style="vertical-align:middle"> '
+    "@ellen_in_sf</a>",
+    unsafe_allow_html=True,
+)
+st.sidebar.markdown("---")
+
 # ── Sidebar: experiment picker ──────────────────────────────────────────────
 
 experiments = discover_experiments()
@@ -208,8 +225,9 @@ if meta.get("context"):
     st.sidebar.markdown("---")
     st.sidebar.markdown("**Context**")
     st.sidebar.markdown(
-        f'<div style="max-height:120px;overflow-y:auto;padding:8px;'
-        f'background:#262730;border-radius:6px;font-size:13px;line-height:1.5">'
+        f'<div style="max-height:240px;overflow-y:auto;padding:8px;'
+        f'background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);'
+        f'border-radius:6px;font-size:13px;line-height:1.5">'
         f'{meta["context"]}</div>',
         unsafe_allow_html=True,
     )
@@ -268,34 +286,38 @@ if len(valid) > 0:
     cols = st.columns(4)
 
     with cols[0]:
-        st.metric(
-            f"Best {primary}",
-            f"{best_val:,.2f}",
-            delta=f"{best_val - baseline_val:,.0f}" if baseline_val else None,
-            delta_color="inverse" if direction == "lower" else "normal",
-        )
+        st.metric(f"Best {primary}", f"{best_val:,.4f}")
         if has_description:
             st.caption(best_row.get("description", ""))
 
     with cols[1]:
         if baseline_val is not None:
-            st.metric("Baseline", f"{baseline_val:,.2f}")
+            st.metric("Baseline", f"{baseline_val:,.4f}")
             if has_description:
                 st.caption(df.iloc[0].get("description", ""))
 
     with cols[2]:
         if baseline_val and baseline_val != 0:
+            abs_diff = abs(best_val - baseline_val)
             if direction == "lower":
                 pct = (baseline_val - best_val) / baseline_val * 100
             else:
                 pct = (best_val - baseline_val) / baseline_val * 100
-            st.metric("Improvement", f"{pct:.1f}%", delta=f"{abs(best_val - baseline_val):,.0f} absolute")
+            st.metric(
+                "Improvement",
+                f"{pct:.1f}%",
+                delta=f"{abs_diff:,.4f} {'lower' if direction == 'lower' else 'higher'}",
+                delta_color="normal",
+            )
 
     with cols[3]:
         if has_status:
             keeps = df[df["status"].isin(["keep", "baseline"])].shape[0]
             reverts = df[df["status"] == "revert"].shape[0]
-            st.metric("Keep Rate", f"{keeps}/{keeps + reverts}", delta=f"{keeps / max(keeps + reverts, 1) * 100:.0f}%")
+            total = keeps + reverts
+            pct_kept = keeps / max(total, 1) * 100
+            st.metric("Keep Rate", f"{pct_kept:.0f}%")
+            st.caption(f"{keeps} kept / {reverts} reverted")
 
 # ── Autotune Progress (combined scatter + running best) ────────────────────
 
@@ -346,7 +368,7 @@ if primary and has_status:
             name="Kept",
             text=kept_df["description"].apply(lambda d: str(d)[:30] if pd.notna(d) else "") if has_description else None,
             textposition="top right",
-            textfont=dict(size=9, color="rgba(200,200,200,0.7)"),
+            textfont=dict(size=9, color="rgba(80,80,80,0.85)"),
             hovertemplate="#%{x}<br>" + primary + ": %{y:.4f}<br>%{customdata[0]}<extra>Kept</extra>",
             customdata=kept_df[["description"]].values if has_description else None,
         ))
@@ -375,7 +397,7 @@ if primary and has_status:
             font=dict(size=12),
         ),
         hovermode="closest",
-        margin=dict(t=80),
+        margin=dict(t=80, b=60),
     )
     st.plotly_chart(fig_progress, use_container_width=True)
 
@@ -435,9 +457,10 @@ if selected_metrics:
     fig.update_layout(
         title="Metric Progression",
         xaxis_title="Experiment #", yaxis_title="Score",
-        template="plotly_dark", height=450,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02),
+        template="plotly_dark", height=500,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         hovermode="x unified",
+        margin=dict(t=80, b=60),
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -473,9 +496,9 @@ if primary and has_status:
     with col2:
         st.subheader("Status Distribution")
         if has_status:
-            status_counts = df["status"].value_counts().reset_index()
+            status_counts = df[df["status"] != "baseline"]["status"].value_counts().reset_index()
             status_counts.columns = ["status", "count"]
-            color_map = {"keep": "#3fb950", "revert": "#f85149", "baseline": "#58a6ff"}
+            color_map = {"keep": "#3fb950", "revert": "#f85149"}
             fig3 = px.pie(
                 status_counts, names="status", values="count",
                 color="status", color_discrete_map=color_map,
@@ -575,6 +598,53 @@ if not insights:
 
 for ins in insights:
     st.markdown(f"- {ins}")
+
+# ── Architecture Diagram ───────────────────────────────────────────────────
+
+st.markdown("---")
+st.subheader("Architecture Diagram")
+
+# Find existing diagram PNG
+exp_name_slug = exp_dir.name
+diagram_png = exp_dir / f"{exp_name_slug}.png"
+diagram_excalidraw = exp_dir / f"{exp_name_slug}.excalidraw"
+# Also check architecture.png as fallback
+if not diagram_png.exists() and (exp_dir / "architecture.png").exists():
+    diagram_png = exp_dir / "architecture.png"
+    diagram_excalidraw = exp_dir / "architecture.excalidraw"
+
+diagram_col1, diagram_col2 = st.columns([3, 1])
+
+with diagram_col2:
+    n_experiments = len(df)
+    st.metric("Experiments", n_experiments)
+    if diagram_png.exists():
+        mtime = datetime.datetime.fromtimestamp(diagram_png.stat().st_mtime)
+        st.caption(f"Last generated: {mtime:%Y-%m-%d %H:%M}")
+
+    if st.button("Regenerate Diagram"):
+        with st.spinner("Generating diagram..."):
+            try:
+                from excalidraw_gen import generate_diagram, export_png
+                doc = generate_diagram(str(exp_dir))
+                out_excalidraw = str(exp_dir / f"{exp_name_slug}.excalidraw")
+                with open(out_excalidraw, "w") as f:
+                    json.dump(doc, f, indent=2)
+                out_png = str(exp_dir / f"{exp_name_slug}.png")
+                if export_png(out_excalidraw, out_png):
+                    st.success("Diagram regenerated")
+                    diagram_png = Path(out_png)
+                else:
+                    st.warning("Excalidraw saved — PNG export failed (needs Node.js)")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Generation failed: {e}")
+
+with diagram_col1:
+    if diagram_png.exists():
+        st.image(str(diagram_png), use_container_width=True)
+    else:
+        st.info("No diagram yet — click **Regenerate Diagram** to create one.")
 
 # ── CatBoost training log (if exists) ──────────────────────────────────────
 
@@ -705,3 +775,94 @@ if len(experiments) > 1:
                     })
         if compare_data:
             st.dataframe(pd.DataFrame(compare_data), use_container_width=True)
+
+# ── Code & Infra ──────────────────────────────────────────────────────────
+
+st.markdown("---")
+st.subheader("Code & Infrastructure")
+
+code_tab_train, code_tab_prepare, code_tab_infra = st.tabs(["train.py", "prepare.py", "Infrastructure"])
+
+with code_tab_train:
+    train_py = exp_dir / "train.py"
+    if train_py.exists():
+        # Show commit tag for current code
+        has_commit_col = "commit" in df.columns
+        if has_commit_col:
+            latest_commit = df.iloc[-1].get("commit", "—")
+            best_commit = best_row.get("commit", "—") if 'best_row' in dir() else "—"
+            tc1, tc2, tc3 = st.columns(3)
+            with tc1:
+                st.markdown(f"**Latest commit:** `{latest_commit}`")
+            with tc2:
+                st.markdown(f"**Best experiment commit:** `{best_commit}`")
+            with tc3:
+                if meta.get("tag"):
+                    st.markdown(f"**Experiment tag:** `{meta['tag']}`")
+        elif meta.get("tag"):
+            st.markdown(f"**Experiment tag:** `{meta['tag']}`")
+
+        st.code(train_py.read_text(), language="python", line_numbers=True)
+    else:
+        st.info("No `train.py` found in this experiment.")
+
+with code_tab_prepare:
+    prepare_py = exp_dir / "prepare.py"
+    if prepare_py.exists():
+        st.code(prepare_py.read_text(), language="python", line_numbers=True)
+    else:
+        st.info("No `prepare.py` found in this experiment.")
+
+with code_tab_infra:
+    infra_col1, infra_col2 = st.columns(2)
+
+    with infra_col1:
+        st.markdown("**Experiment Config**")
+        infra_data = {}
+        if meta.get("tag"):
+            infra_data["Tag"] = meta["tag"]
+        if meta.get("backend"):
+            infra_data["Backend"] = meta["backend"]
+        if meta.get("agent_llm"):
+            infra_data["Agent LLM"] = meta["agent_llm"]
+        if meta.get("task"):
+            infra_data["Task"] = meta["task"]
+        if meta.get("target"):
+            infra_data["Target"] = meta["target"]
+        if primary:
+            infra_data["Primary Metric"] = f"{primary} ({direction} is better)"
+        infra_data["Total Experiments"] = len(df)
+        if has_status:
+            infra_data["Kept"] = int(df[df["status"].isin(["keep", "baseline"])].shape[0])
+            infra_data["Reverted"] = int(df[df["status"] == "revert"].shape[0])
+            infra_data["Crashed"] = int(df[df["status"] == "crash"].shape[0])
+        st.json(infra_data)
+
+    with infra_col2:
+        st.markdown("**Dependencies**")
+        pyproject = exp_dir / "pyproject.toml"
+        if pyproject.exists():
+            st.code(pyproject.read_text(), language="toml")
+        else:
+            st.info("No `pyproject.toml` found.")
+
+    # Commit log from experiments.tsv
+    if "commit" in df.columns:
+        st.markdown("**Commit History**")
+        commit_df = df[["#", "commit", "status", "description"]].copy() if has_description else df[["#", "commit", "status"]].copy()
+        commit_df = commit_df.dropna(subset=["commit"])
+        st.dataframe(commit_df, use_container_width=True, height=300)
+
+    # Git log from experiment repo if available
+    exp_git_dir = exp_dir / ".git"
+    if exp_git_dir.exists():
+        st.markdown("**Git Log (last 15 commits)**")
+        try:
+            git_log = subprocess.run(
+                ["git", "log", "--oneline", "--no-decorate", "-15"],
+                capture_output=True, text=True, cwd=str(exp_dir), timeout=5,
+            )
+            if git_log.returncode == 0 and git_log.stdout.strip():
+                st.code(git_log.stdout.strip(), language="text")
+        except Exception:
+            pass

@@ -7,13 +7,13 @@ a visual architecture diagram showing model config, training flow, and results.
 
 Usage:
     python excalidraw_gen.py experiments/my-run
-    python excalidraw_gen.py experiments/my-run -o my-diagram.excalidraw
 """
 
 import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 
 
@@ -44,7 +44,7 @@ def parse_train_py(path):
     for key, pat in patterns.items():
         m = re.search(pat, src, re.IGNORECASE)
         if m:
-            config[key] = m.group(1)
+            config[key] = m.group(1) if m.lastindex else True
 
     # Detect architecture features
     if re.search(r"GQA|grouped.query|n_kv_heads", src, re.IGNORECASE):
@@ -371,20 +371,45 @@ def generate_diagram(exp_dir):
 # CLI
 # ---------------------------------------------------------------------------
 
+def export_png(excalidraw_path, png_path):
+    """Export an Excalidraw file to PNG using @vraksha/excalidraw-cli."""
+    abs_path = os.path.abspath(excalidraw_path)
+    work_dir = os.path.dirname(abs_path)
+    filename = os.path.basename(abs_path)
+    try:
+        subprocess.run(
+            ["npx", "-y", "@vraksha/excalidraw-cli", filename, "."],
+            capture_output=True, text=True, timeout=120, check=True,
+            cwd=work_dir,
+        )
+        expected = os.path.join(work_dir, os.path.splitext(filename)[0] + ".png")
+        if os.path.isfile(expected) and os.path.abspath(expected) != os.path.abspath(png_path):
+            os.rename(expected, png_path)
+        return os.path.isfile(png_path)
+    except FileNotFoundError:
+        print("  npx not found — install Node.js to enable PNG export", file=sys.stderr)
+    except subprocess.CalledProcessError as e:
+        print(f"  PNG export failed: {e.stderr.strip()}", file=sys.stderr)
+    except subprocess.TimeoutExpired:
+        print("  PNG export timed out", file=sys.stderr)
+    return False
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Generate an Excalidraw diagram for an experiment",
     )
     parser.add_argument("exp_dir", help="Experiment directory (e.g. experiments/my-run)")
-    parser.add_argument("-o", "--output", default=None,
-                        help="Output file (default: <exp_dir>/architecture.excalidraw)")
+    parser.add_argument("--no-png", action="store_true",
+                        help="Skip PNG export")
     args = parser.parse_args()
 
     if not os.path.isdir(args.exp_dir):
         print(f"Error: {args.exp_dir} is not a directory", file=sys.stderr)
         sys.exit(1)
 
-    output = args.output or os.path.join(args.exp_dir, "architecture.excalidraw")
+    exp_name = os.path.basename(os.path.normpath(args.exp_dir))
+    output = os.path.join(args.exp_dir, f"{exp_name}.excalidraw")
     doc = generate_diagram(args.exp_dir)
 
     with open(output, "w") as f:
@@ -392,7 +417,16 @@ def main():
 
     n_elements = len(doc["elements"])
     print(f"Generated {output} ({n_elements} elements)")
-    print(f"Open at https://excalidraw.com — File → Open → select {os.path.basename(output)}")
+
+    # Export PNG with the same base name
+    if not args.no_png:
+        png_path = os.path.splitext(output)[0] + ".png"
+        if export_png(output, png_path):
+            print(f"Exported {png_path}")
+        else:
+            print(f"To export manually: open {os.path.basename(output)} at https://excalidraw.com and export as PNG")
+    else:
+        print(f"Open at https://excalidraw.com — File → Open → select {os.path.basename(output)}")
 
 
 if __name__ == "__main__":

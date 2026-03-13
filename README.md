@@ -37,11 +37,29 @@ Just [uv](https://docs.astral.sh/uv/). It handles Python, virtual envs, and all 
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
+**Optional:** [Node.js](https://nodejs.org/) — only needed for automatic PNG export from `make diagram`. Without it, diagrams are still generated as `.excalidraw` files (open at [excalidraw.com](https://excalidraw.com) or in VS Code).
+
+```bash
+brew install node
+```
+
 - **Mac (Apple Silicon):** auto-detects `--backend mlx`
 - **GPU (CUDA):** pass `--backend pt`
 - **No flag?** picks `mlx` on Apple Silicon, `pt` everywhere else
 
 ## Quick start
+
+```bash
+# Install dependencies
+uv sync
+
+# Try the dashboard with included sample data (no GPU needed)
+make dashboard
+```
+
+The repo ships with a sample experiment (`experiments/attention-free`) — 15 iterations of attention-free architecture search on TinyStories. The dashboard auto-discovers it and runs instantly.
+
+### Generate your own experiment
 
 ```bash
 # Interactive — walks you through it
@@ -128,19 +146,23 @@ Streamlit dashboard to visualize experiment results. Auto-detects any metric fro
 
 ```bash
 # Launch — auto-discovers all experiments in experiments/
+# Includes sample data out of the box
 make dashboard
 
 # Or point at a specific experiment
-make dashboard-exp EXP=experiments/scaling-depth
+make dashboard EXP_SCOPE=experiments/scaling-depth
 ```
 
 What you get:
 - **KPI cards** — best metric, baseline, improvement %, keep rate
+- **Autotune progress** — scatter plot with running best line
 - **Metric progression** — interactive chart with keep/revert markers
 - **Best-so-far line** — running best across experiments
-- **Status distribution** — pie chart of keep/revert/baseline
+- **Status distribution** — pie chart of keep/revert
 - **Overfitting analysis** — train vs eval gap (when available)
 - **Auto-generated insights** — biggest win, worst attempt, diminishing returns
+- **Architecture diagram** — auto-generated Excalidraw diagram with regenerate button
+- **Code & Infra tab** — view train.py/prepare.py source, dependencies, commit history
 - **Full experiment log** — filterable table with highlighted best values
 
 Works with any metric — val_bpb, cv_rmse, f1, accuracy, whatever your experiment tracks. The agent writes two TSV files: `experiments.tsv` (every iteration including reverts/crashes) and `results.tsv` (only baseline + kept experiments). The dashboard reads both.

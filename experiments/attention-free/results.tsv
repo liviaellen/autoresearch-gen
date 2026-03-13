@@ -1,0 +1,9 @@
+commit	val_bpb	memory_gb	status	description
+21cdbc1	2.109738	27.4	baseline	baseline
+c448370	1.788831	27.5	keep	Exp7: Multi-scale gated causal conv (K=7,15,31,63) + 6x MLP
+1398518	1.751452	-	keep	Exp10: K=3,7,15,31 + 5% warmup
+fea3785	1.633777	-	keep	Exp11: total_batch=2^15 — 490 steps
+7c968af	1.607826	-	keep	Exp12: batch=2^14 device=8 — 862 steps
+62f6b27	1.592031	-	keep	Exp13: batch=2^13 device=4 — 1969 steps
+ab237f8	1.584078	-	keep	Exp16: warmdown=0.7 — 1.584
+6ee9594	1.577507	-	keep	Exp22: weight_decay=0.1 — 1.578

@@ -1,0 +1,13 @@
+[project]
+name = "autoresearch-attention-free"
+version = "0.1.0"
+description = "Autonomous pretraining experiment: attention-free"
+requires-python = ">=3.10"
+dependencies = [
+    "mlx>=0.5",
+    "numpy",
+    "pyarrow",
+    "requests",
+    "rustbpe",
+    "tiktoken",
+]

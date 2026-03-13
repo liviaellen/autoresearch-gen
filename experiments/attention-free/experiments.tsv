@@ -1,0 +1,24 @@
+commit	val_bpb	memory_gb	status	description
+21cdbc1	2.109738	27.4	baseline	baseline
+d6df5c5	2.206748	29.7	revert	Exp5: Token shift + key gating + windowed avg — slower and worse than baseline
+2a14204	nan	-	crash	Exp6: Linear attention with ELU+1 — NaN at step 24 (numerical instability in cumsum)
+c448370	1.788831	27.5	keep	Exp7: Multi-scale gated causal conv (K=7,15,31,63) + 6x MLP — BEATS BASELINE
+d329382	2.003349	39.4	revert	Exp8: batch_size=32 — fewer steps (110), worse result
+5a451c0	2.165383	29.3	revert	Exp9: 10 layers K=15 5x MLP — too slow (119 steps), worse
+1398518	1.751452	-	keep	Exp10: K=3,7,15,31 + 5% warmup — faster, better
+fea3785	1.633777	-	keep	Exp11: total_batch=2^15 — 490 steps, big improvement
+7c968af	1.607826	-	keep	Exp12: batch=2^14 device=8 — 862 steps, 1.608
+62f6b27	1.592031	-	keep	Exp13: batch=2^13 device=4 — 1969 steps, 1.592
+f9d26c8	1.657243	-	revert	Exp14: batch=2^12 — too noisy, worse
+3bbdf1f	1.608632	-	revert	Exp15: SiGLU 4x — slightly worse than ReluSquared 6x
+ab237f8	1.584078	-	keep	Exp16: warmdown=0.7 — new best 1.584
+ae49817	1.605446	-	revert	Exp17: warmdown=0.8 LR=0.06 — worse
+79e3b65	1.585467	-	revert	Exp18: warmdown=0.8 — tied with 0.7
+66fbdbb	1.586809	-	revert	Exp19: token shift — marginal, slightly worse
+d16f866	1.592149	-	revert	Exp20: 8x MLP — slower, worse than 6x
+42931ea	1.596500	-	revert	Exp21: betas=(0.9,0.99) wd=0.1 — worse
+6ee9594	1.577507	-	keep	Exp22: weight_decay=0.1 — new best 1.578
+8577785	1.586590	-	revert	Exp23: wd=0.05 — too low, worse
+ec20d93	1.583902	-	revert	Exp24: dual conv — marginal, slightly slower
+39f9492	1.588246	-	revert	Exp25: cosine LR — worse than linear warmdown
+49f1597	1.631034	-	revert	Exp26: FINAL_LR_FRAC=0.1 — too high, worse

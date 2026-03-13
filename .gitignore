@@ -1,4 +1,14 @@
 .env
 __pycache__/
 *.pyc
-experiments/
+
+# Ignore all experiments except the sample
+experiments/*
+!experiments/attention-free/
+experiments/attention-free/.venv/
+experiments/attention-free/__pycache__/
+experiments/attention-free/*.log
+experiments/attention-free/.git/
+experiments/attention-free/Users/
+experiments/attention-free/architecture.*
+experiments/attention-free/uv.lock
