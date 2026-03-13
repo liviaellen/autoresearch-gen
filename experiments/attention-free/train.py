@@ -108,7 +108,7 @@ class GPT(nn.Module):
             m.conv.weight = kernels.reshape(n, K, 1).astype(mx.bfloat16)
             block.mlp.c_fc.weight = mx.random.uniform(-scale, scale, block.mlp.c_fc.weight.shape).astype(mx.bfloat16)
             block.mlp.gate.weight = mx.random.uniform(-scale, scale, block.mlp.gate.weight.shape).astype(mx.bfloat16)
-            block.mlp.c_proj.weight = mx.zeros_like(block.mlp.c_proj.weight).astype(mx.bfloat16)
+            block.mlp.c_proj.weight = (mx.random.normal(block.mlp.c_proj.weight.shape) * 0.001).astype(mx.bfloat16)
 
     def __call__(self, idx, targets=None, reduction="mean"):
         _, seq_len = idx.shape
@@ -260,7 +260,7 @@ SCALAR_LR = 0.5
 WEIGHT_DECAY = 0.1
 ADAM_BETAS = (0.8, 0.95)
 WARMUP_RATIO = 0.25
-WARMDOWN_RATIO = 0.65
+WARMDOWN_RATIO = 0.7
 FINAL_LR_FRAC = 0.0
 
 DEPTH = 8
