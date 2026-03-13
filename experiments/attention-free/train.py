@@ -90,14 +90,14 @@ class GPT(nn.Module):
         # Multi-scale kernels for speed/context tradeoff
         kernel_sizes = [3, 7, 15, 31, 63, 127, 15, 31][:config.n_layer]
         self.blocks = [Block(config, kernel_size=kernel_sizes[i]) for i in range(config.n_layer)]
-        self.lm_head = None  # weight tied with wte
+        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
 
     def init_weights(self):
         n_embd = self.config.n_embd
         scale = 3**0.5 * n_embd**-0.5
 
         self.wte.weight = (mx.random.normal(self.wte.weight.shape) * 1.0).astype(mx.bfloat16)
-        # lm_head is weight-tied with wte (no separate init needed)
+        self.lm_head.weight = (mx.random.normal(self.lm_head.weight.shape) * 0.001).astype(mx.bfloat16)
 
         for block in self.blocks:
             m = block.mixer
@@ -122,7 +122,7 @@ class GPT(nn.Module):
             x = block(x)
         x = norm(x)
 
-        logits = (x @ self.wte.weight.T).astype(mx.float32)
+        logits = self.lm_head(x).astype(mx.float32)
         logits = 15.0 * mx.tanh(logits / 15.0)
 
         if targets is None:
@@ -263,7 +263,7 @@ SCALAR_LR = 0.5
 WEIGHT_DECAY = 0.1
 ADAM_BETAS = (0.8, 0.95)
 WARMUP_RATIO = 0.25
-WARMDOWN_RATIO = 0.7
+WARMDOWN_RATIO = 0.6
 FINAL_LR_FRAC = 0.0
 
 DEPTH = 8
