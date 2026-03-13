@@ -297,6 +297,88 @@ if len(valid) > 0:
             reverts = df[df["status"] == "revert"].shape[0]
             st.metric("Keep Rate", f"{keeps}/{keeps + reverts}", delta=f"{keeps / max(keeps + reverts, 1) * 100:.0f}%")
 
+# ── Autotune Progress (combined scatter + running best) ────────────────────
+
+if primary and has_status:
+    st.markdown("---")
+
+    kept_mask = df["status"].isin(["keep", "baseline"])
+    discarded_mask = df["status"].isin(["revert", "crash"])
+    kept_df = df[kept_mask].dropna(subset=[primary])
+    discarded_df = df[discarded_mask].dropna(subset=[primary])
+
+    # Compute running best from kept experiments
+    running_best_rows = []
+    best_so_far_val = None
+    for _, row in df.iterrows():
+        val = row[primary]
+        if pd.isna(val):
+            continue
+        if row.get("status") in ("keep", "baseline"):
+            if best_so_far_val is None or (direction == "lower" and val < best_so_far_val) or (direction == "higher" and val > best_so_far_val):
+                best_so_far_val = val
+                running_best_rows.append(row)
+
+    n_kept = len(kept_df)
+    n_total = len(df.dropna(subset=[primary]))
+
+    fig_progress = go.Figure()
+
+    # Discarded experiments — small gray dots
+    if len(discarded_df) > 0:
+        fig_progress.add_trace(go.Scatter(
+            x=discarded_df["#"],
+            y=discarded_df[primary],
+            mode="markers",
+            marker=dict(size=5, color="rgba(180,180,180,0.35)", line=dict(width=0)),
+            name="Discarded",
+            hovertemplate="#%{x}<br>" + primary + ": %{y:.4f}<br>%{customdata[0]}<extra>Discarded</extra>",
+            customdata=discarded_df[["description"]].values if has_description else None,
+        ))
+
+    # Kept experiments — larger green dots
+    if len(kept_df) > 0:
+        fig_progress.add_trace(go.Scatter(
+            x=kept_df["#"],
+            y=kept_df[primary],
+            mode="markers+text",
+            marker=dict(size=10, color="#3fb950", line=dict(width=1, color="rgba(255,255,255,0.5)")),
+            name="Kept",
+            text=kept_df["description"].apply(lambda d: str(d)[:30] if pd.notna(d) else "") if has_description else None,
+            textposition="top right",
+            textfont=dict(size=9, color="rgba(200,200,200,0.7)"),
+            hovertemplate="#%{x}<br>" + primary + ": %{y:.4f}<br>%{customdata[0]}<extra>Kept</extra>",
+            customdata=kept_df[["description"]].values if has_description else None,
+        ))
+
+    # Running best step-line
+    if running_best_rows:
+        rb_df = pd.DataFrame(running_best_rows)
+        fig_progress.add_trace(go.Scatter(
+            x=rb_df["#"],
+            y=rb_df[primary],
+            mode="lines+markers",
+            line=dict(color="#3fb950", width=2, shape="hv"),
+            marker=dict(size=9, color="#3fb950", line=dict(width=1.5, color="white")),
+            name="Running best",
+            hovertemplate="#%{x}<br>" + primary + ": %{y:.4f}<extra>Best</extra>",
+        ))
+
+    fig_progress.update_layout(
+        title=f"Autotune Progress: {n_total} Experiments, {n_kept} Kept Improvements",
+        xaxis_title="Experiment #",
+        yaxis_title=f"{primary} ({'lower' if direction == 'lower' else 'higher'} is better)",
+        template="plotly_dark",
+        height=520,
+        legend=dict(
+            orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+            font=dict(size=12),
+        ),
+        hovermode="closest",
+        margin=dict(t=80),
+    )
+    st.plotly_chart(fig_progress, use_container_width=True)
+
 # ── Primary metric over experiments ─────────────────────────────────────────
 
 st.markdown("---")
