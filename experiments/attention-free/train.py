@@ -40,18 +40,21 @@ def get_peak_memory_mb():
 
 
 class ConvMixer(nn.Module):
-    """Token mixing via depthwise causal convolution."""
+    """Token mixing via two stacked depthwise causal convolutions."""
 
     def __init__(self, config, kernel_size=15):
         super().__init__()
         n = config.n_embd
         self.K = kernel_size
         self.conv = nn.Conv1d(n, n, kernel_size=kernel_size, padding=0, groups=n, bias=False)
+        self.conv2 = nn.Conv1d(n, n, kernel_size=3, padding=0, groups=n, bias=False)
 
     def __call__(self, x):
         B, T, D = x.shape
         x_padded = mx.pad(x, [(0, 0), (self.K - 1, 0), (0, 0)])
-        return self.conv(x_padded)
+        h = self.conv(x_padded)
+        h_padded = mx.pad(h, [(0, 0), (2, 0), (0, 0)])
+        return self.conv2(h_padded)
 
 
 class MLP(nn.Module):
@@ -106,6 +109,10 @@ class GPT(nn.Module):
             kernels = mx.power(rates[:, None], k_range[None, :])
             kernels = kernels / mx.sum(kernels, axis=1, keepdims=True)
             m.conv.weight = kernels.reshape(n, K, 1).astype(mx.bfloat16)
+            # Init conv2 (K=3)
+            short_decay = mx.power(mx.array(0.9), mx.arange(3, dtype=mx.float32))
+            short_decay = short_decay / mx.sum(short_decay)
+            m.conv2.weight = mx.broadcast_to(short_decay.reshape(1, 3, 1), m.conv2.weight.shape).astype(mx.bfloat16)
             block.mlp.c_fc.weight = mx.random.uniform(-scale, scale, block.mlp.c_fc.weight.shape).astype(mx.bfloat16)
             block.mlp.gate.weight = mx.random.uniform(-scale, scale, block.mlp.gate.weight.shape).astype(mx.bfloat16)
             block.mlp.c_proj.weight = mx.zeros_like(block.mlp.c_proj.weight).astype(mx.bfloat16)
@@ -114,6 +121,7 @@ class GPT(nn.Module):
         _, seq_len = idx.shape
 
         x = self.wte(idx)
+        x = norm(x)
         for block in self.blocks:
             x = block(x)
         x = norm(x)
