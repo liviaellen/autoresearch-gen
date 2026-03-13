@@ -100,7 +100,7 @@ class GPT(nn.Module):
             K = m.K
             n = config.n_embd
             # Per-channel decay rates: uniformly spaced in [0.8, 0.99]
-            rates = mx.linspace(0.8, 0.99, n)
+            rates = mx.linspace(0.5, 0.999, n)
             k_range = mx.arange(K, dtype=mx.float32)
             # Build per-channel kernels: shape (n, K)
             kernels = mx.power(rates[:, None], k_range[None, :])
