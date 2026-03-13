@@ -269,7 +269,7 @@ class AdamW:
 # Hyperparameters
 # ---------------------------------------------------------------------------
 
-ASPECT_RATIO = 64
+ASPECT_RATIO = 42
 HEAD_DIM = 128
 
 TOTAL_BATCH_SIZE = 2**13
