@@ -127,7 +127,7 @@ class GPT(nn.Module):
 
         valid = targets != -1
         targets_safe = mx.where(valid, targets, mx.zeros_like(targets))
-        ce = nn.losses.cross_entropy(logits, targets_safe, reduction="none")
+        ce = nn.losses.cross_entropy(logits, targets_safe, reduction="none", label_smoothing=0.1)
         ce = ce * valid
         if reduction == "none":
             return ce
@@ -261,7 +261,7 @@ WEIGHT_DECAY = 0.1
 ADAM_BETAS = (0.8, 0.95)
 WARMUP_RATIO = 0.25
 WARMDOWN_RATIO = 0.7
-FINAL_LR_FRAC = 0.01
+FINAL_LR_FRAC = 0.0
 
 DEPTH = 8
 DEVICE_BATCH_SIZE = 4
