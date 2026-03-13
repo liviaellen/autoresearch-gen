@@ -54,7 +54,7 @@ class GatedConvMixer(nn.Module):
         B, T, D = x.shape
         x_padded = mx.pad(x, [(0, 0), (self.K - 1, 0), (0, 0)])
         conv_out = self.conv(x_padded)
-        gate = nn.silu(self.gate_proj(x))
+        gate = mx.sigmoid(self.gate_proj(x))
         return self.out_proj(gate * conv_out)
 
 
@@ -160,7 +160,7 @@ class AdamW:
             elif "conv" in path:
                 self.param_config[path] = {
                     "lr": matrix_lr * 2.0, "betas": adam_betas,
-                    "eps": 1e-10, "weight_decay": 0.0,
+                    "eps": 1e-10, "weight_decay": weight_decay,
                 }
             elif "wte" in path:
                 self.param_config[path] = {
