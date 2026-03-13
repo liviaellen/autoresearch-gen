@@ -47,14 +47,11 @@ class GatedConvMixer(nn.Module):
         n = config.n_embd
         self.K = kernel_size
         self.conv = nn.Conv1d(n, n, kernel_size=kernel_size, padding=0, groups=n, bias=False)
-        self.gate_proj = nn.Linear(n, n, bias=False)
 
     def __call__(self, x):
         B, T, D = x.shape
         x_padded = mx.pad(x, [(0, 0), (self.K - 1, 0), (0, 0)])
-        conv_out = self.conv(x_padded)
-        gate = mx.sigmoid(self.gate_proj(x))
-        return gate * conv_out
+        return self.conv(x_padded)
 
 
 class MLP(nn.Module):
@@ -106,7 +103,7 @@ class GPT(nn.Module):
             m.conv.weight = mx.broadcast_to(
                 decay.reshape(1, K, 1), m.conv.weight.shape
             ).astype(mx.bfloat16)
-            m.gate_proj.weight = mx.zeros_like(m.gate_proj.weight).astype(mx.bfloat16)
+            # gate_proj removed — mixer is just depthwise conv
             block.mlp.c_fc.weight = mx.random.uniform(-scale, scale, block.mlp.c_fc.weight.shape).astype(mx.bfloat16)
             block.mlp.gate.weight = mx.random.uniform(-scale, scale, block.mlp.gate.weight.shape).astype(mx.bfloat16)
             block.mlp.c_proj.weight = mx.zeros_like(block.mlp.c_proj.weight).astype(mx.bfloat16)
