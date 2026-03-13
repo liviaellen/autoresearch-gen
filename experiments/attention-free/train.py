@@ -132,7 +132,10 @@ class GPT(nn.Module):
         if reduction == "none":
             return ce
         denom = mx.maximum(mx.sum(valid), 1)
-        return mx.sum(ce) / denom
+        main_loss = mx.sum(ce) / denom
+        # z-loss: penalize large logits for stability
+        z_loss = 1e-4 * mx.mean(mx.logsumexp(logits, axis=-1) ** 2)
+        return main_loss + z_loss
 
 
 # ---------------------------------------------------------------------------
@@ -252,7 +255,7 @@ class AdamW:
 ASPECT_RATIO = 64
 HEAD_DIM = 128
 
-TOTAL_BATCH_SIZE = 2**14
+TOTAL_BATCH_SIZE = 2**13
 EMBEDDING_LR = 0.6
 UNEMBEDDING_LR = 0.004
 MATRIX_LR = 0.003
@@ -264,7 +267,7 @@ WARMDOWN_RATIO = 0.7
 FINAL_LR_FRAC = 0.0
 
 DEPTH = 8
-DEVICE_BATCH_SIZE = 8
+DEVICE_BATCH_SIZE = 4
 FINAL_EVAL_BATCH_SIZE = 256
 STARTUP_EXCLUDE_STEPS = 1
 
