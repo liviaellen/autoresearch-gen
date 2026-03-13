@@ -71,11 +71,10 @@ class Block(nn.Module):
         super().__init__()
         self.mixer = ConvMixer(config, kernel_size=kernel_size)
         self.mlp = MLP(config)
-        self.alpha = 1.0 / config.n_layer
 
     def __call__(self, x):
-        x = x + self.alpha * self.mixer(norm(x))
-        x = x + self.alpha * self.mlp(norm(x))
+        x = x + self.mixer(norm(x))
+        x = x + self.mlp(norm(x))
         return x
 
 
