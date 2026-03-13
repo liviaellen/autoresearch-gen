@@ -46,7 +46,9 @@ class GatedConvMixer(nn.Module):
         super().__init__()
         n = config.n_embd
         self.K = kernel_size
-        self.conv = nn.Conv1d(n, n, kernel_size=kernel_size, padding=0, groups=n, bias=False)
+        # Group conv: 128 groups of 4 channels each for some cross-channel mixing
+        self.n_groups = n // 4
+        self.conv = nn.Conv1d(n, n, kernel_size=kernel_size, padding=0, groups=self.n_groups, bias=False)
         self.gate_proj = nn.Linear(n, n, bias=False)
         self.out_proj = nn.Linear(n, n, bias=False)
 
@@ -88,8 +90,9 @@ class GPT(nn.Module):
         super().__init__()
         self.config = config
         self.wte = nn.Embedding(config.vocab_size, config.n_embd)
-        # Uniform K=31 for maximum context per layer (RF = 1+8*30 = 241)
-        self.blocks = [Block(config, kernel_size=31) for _ in range(config.n_layer)]
+        # Multi-scale kernels for speed/context tradeoff
+        kernel_sizes = [3, 7, 15, 31, 3, 7, 15, 31][:config.n_layer]
+        self.blocks = [Block(config, kernel_size=kernel_sizes[i]) for i in range(config.n_layer)]
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
         self.resid_lambdas = mx.ones((config.n_layer,), dtype=mx.float32)
         self.x0_lambdas = mx.zeros((config.n_layer,), dtype=mx.float32)
