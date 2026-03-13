@@ -59,7 +59,7 @@ class GatedConvMixer(nn.Module):
 
 
 class MLP(nn.Module):
-    def __init__(self, config, expansion=6):
+    def __init__(self, config, expansion=4):
         super().__init__()
         inner = expansion * config.n_embd
         self.c_fc = nn.Linear(config.n_embd, inner, bias=False)
@@ -89,7 +89,7 @@ class GPT(nn.Module):
         self.config = config
         self.wte = nn.Embedding(config.vocab_size, config.n_embd)
         # Multi-scale kernels for speed/context tradeoff
-        kernel_sizes = [3, 7, 15, 31, 3, 7, 15, 31][:config.n_layer]
+        kernel_sizes = [3, 7, 15, 31, 3, 7, 15, 31, 3, 7, 15, 31][:config.n_layer]
         self.blocks = [Block(config, kernel_size=kernel_sizes[i]) for i in range(config.n_layer)]
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
         self.resid_lambdas = mx.ones((config.n_layer,), dtype=mx.float32)
@@ -274,16 +274,16 @@ HEAD_DIM = 128
 
 TOTAL_BATCH_SIZE = 2**13
 EMBEDDING_LR = 0.6
-UNEMBEDDING_LR = 0.002
+UNEMBEDDING_LR = 0.004
 MATRIX_LR = 0.005
-SCALAR_LR = 0.2
+SCALAR_LR = 0.5
 WEIGHT_DECAY = 0.1
 ADAM_BETAS = (0.8, 0.95)
 WARMUP_RATIO = 0.25
 WARMDOWN_RATIO = 0.7
 FINAL_LR_FRAC = 0.0
 
-DEPTH = 8
+DEPTH = 12
 DEVICE_BATCH_SIZE = 4
 FINAL_EVAL_BATCH_SIZE = 256
 STARTUP_EXCLUDE_STEPS = 1
