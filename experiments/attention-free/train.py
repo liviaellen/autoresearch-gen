@@ -123,7 +123,7 @@ class GPT(nn.Module):
         x = norm(x)
 
         logits = self.lm_head(x).astype(mx.float32)
-        logits = 15.0 * mx.tanh(logits / 15.0)
+        logits = 30.0 * mx.tanh(logits / 30.0)
 
         if targets is None:
             return logits
@@ -258,7 +258,7 @@ HEAD_DIM = 128
 TOTAL_BATCH_SIZE = 2**13
 EMBEDDING_LR = 0.6
 UNEMBEDDING_LR = 0.004
-MATRIX_LR = 0.005
+MATRIX_LR = 0.003
 SCALAR_LR = 0.5
 WEIGHT_DECAY = 0.1
 ADAM_BETAS = (0.8, 0.95)
