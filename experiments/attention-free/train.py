@@ -55,7 +55,7 @@ class GatedConvMixer(nn.Module):
 
 
 class MLP(nn.Module):
-    def __init__(self, config, expansion=4):
+    def __init__(self, config, expansion=3):
         super().__init__()
         inner = expansion * config.n_embd
         self.c_fc = nn.Linear(config.n_embd, inner, bias=False)
@@ -247,7 +247,7 @@ class AdamW:
 # Hyperparameters
 # ---------------------------------------------------------------------------
 
-ASPECT_RATIO = 64
+ASPECT_RATIO = 80
 HEAD_DIM = 128
 
 TOTAL_BATCH_SIZE = 2**13
