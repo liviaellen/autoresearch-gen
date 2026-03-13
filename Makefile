@@ -1,4 +1,4 @@
-.PHONY: help gen dashboard diagram baseline agent clean
+.PHONY: help gen dashboard diagram baseline agent test clean
 
 # Print each command before executing and stop on errors;
 # this ensures failing recipes show the command that ran.
@@ -75,6 +75,13 @@ agent: ## Launch Claude agent in experiment dir (set EXP)
 	@echo "example: make agent EXP=experiments/foo"
 	@echo "  EXP — experiment directory            (e.g. experiments/attention-free)"
 	cd $(EXP) && claude --dangerously-skip-permissions
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+test: ## Run tests
+	uv run --extra test pytest tests/ -v
 
 # ---------------------------------------------------------------------------
 # Utilities

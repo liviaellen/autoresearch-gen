@@ -4,7 +4,7 @@ I loved Karpathy's [autoresearch](https://github.com/karpathy/autoresearch) — 
 
 So I built this. **autoresearch-gen** is a scaffold generator that sits on top of autoresearch. Tell it what you're working on, pick your LLM and backend, and it generates a ready-to-run experiment directory — then **automatically runs the baseline** to guarantee the code works before you hand it off to an agent.
 
-Every scaffold is **verified end-to-end**: gen.py writes the files, runs `prepare.py` (downloads data, trains tokenizer), runs `train.py` (full training loop), parses the val_bpb, and prints a summary with your hardware info, config, and baseline results. If LLM-customized code crashes, it automatically falls back to the base template and re-runs. You never get a broken scaffold.
+Every scaffold is **verified end-to-end**: gen.py writes the files, runs `prepare.py` (downloads data, trains tokenizer), runs `train.py` (full training loop), parses the val_bpb, and prints a summary with your hardware info, config, and baseline results. If LLM-customized code crashes, it **sends the error back to the LLM** to fix the code and retries (up to 3 attempts). You never get a broken scaffold.
 
 Before generating, the tool runs an **LLM-powered interview** — it reads what you told it, figures out what's missing or vague, and asks targeted follow-up questions. Then it calls your chosen LLM to tailor `train.py` and `program.md` based on everything you said.
 
@@ -23,7 +23,7 @@ Supports **PyTorch (CUDA)** and **MLX (Apple Silicon)**. Comes with a **Streamli
 6. Print summary       ← hardware, config, verified baseline metrics
 ```
 
-If step 5 fails (LLM-customized code crashes), gen.py automatically falls back to the base template and re-runs. You always get a working scaffold.
+If step 5 fails (LLM-customized code crashes), gen.py sends the error back to the LLM, gets a fix, and retries — up to 3 attempts. You always get a working scaffold.
 
 ![gen.py output](assets/genpy.png)
 
@@ -484,7 +484,7 @@ experiments/        ← generated experiment directories
 | | autoresearch | autoresearch-gen |
 |---|---|---|
 | Setup | Clone repo, manually edit `program.md`, run prepare + train yourself | Run `gen.py` — **auto-runs baseline**, prints hardware + verified metrics |
-| Validation | Hope it works | **Guaranteed** — baseline runs before you touch the agent. LLM code crash? Auto-fallback to base template |
+| Validation | Hope it works | **Guaranteed** — baseline runs before you touch the agent. LLM code crash? Error goes back to LLM for auto-fix (up to 3 retries) |
 | Backend | PyTorch only | **PyTorch + MLX** (Apple Silicon) |
 | Context | You write `program.md` by hand | **LLM-generated** — describe your project, LLM asks follow-ups, then customizes `train.py` + `program.md` |
 | Agent LLM | Hardcoded | **Switch with `--model`** — Claude, GPT-4o, DeepSeek, or any model via LiteLLM |

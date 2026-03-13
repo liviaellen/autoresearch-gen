@@ -1,0 +1,6 @@
+commit	val_bpb	memory_gb	status	description
+abc1234	2.109738	27.4	baseline	baseline
+def5678	2.206748	29.7	revert	Exp1: worse
+ghi9012	1.788831	27.5	keep	Exp2: better
+jkl3456	nan	-	crash	Exp3: crashed
+mno7890	1.751452	-	keep	Exp4: even better

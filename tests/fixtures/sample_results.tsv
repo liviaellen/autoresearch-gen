@@ -1,0 +1,4 @@
+commit	val_bpb	memory_gb	status	description
+abc1234	2.109738	27.4	baseline	baseline
+ghi9012	1.788831	27.5	keep	Exp2: better
+mno7890	1.751452	-	keep	Exp4: even better

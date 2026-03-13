@@ -29,5 +29,12 @@ dashboard = [
     "plotly",
 ]
 
+test = [
+    "pytest",
+    "pandas",
+    "streamlit",
+    "plotly",
+]
+
 [project.scripts]
 autoresearch-gen = "gen:main"

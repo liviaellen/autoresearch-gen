@@ -7,3 +7,7 @@ fea3785	1.633777	-	keep	Exp11: total_batch=2^15 — 490 steps
 62f6b27	1.592031	-	keep	Exp13: batch=2^13 device=4 — 1969 steps
 ab237f8	1.584078	-	keep	Exp16: warmdown=0.7 — 1.584
 6ee9594	1.577507	-	keep	Exp22: weight_decay=0.1 — 1.578
+fab8ab2	1.571361	-	keep	Exp29: warmup=10% — 1.571
+8569fa5	1.562743	-	keep	Exp30: warmup=15% — 1.563
+288d32d	1.559071	-	keep	Exp31: warmup=20% — 1.559
+d0b0a47	1.557169	-	keep	Exp32: warmup=25% — 1.557

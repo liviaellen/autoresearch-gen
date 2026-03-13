@@ -314,6 +314,37 @@ Customize this template based on the user's context above. Return the full file 
     return _strip_fences(text)
 
 
+def fix_with_llm(broken_code, error_output, model_name, api_key, backend):
+    """Send broken code + error back to the LLM and ask it to fix."""
+    backend_label = "PyTorch (CUDA)" if backend == "pt" else "MLX (Apple Silicon)"
+
+    system_prompt = """\
+You are debugging a train.py file for an ML pretraining experiment.
+The code crashed during baseline validation. You will receive the broken code
+and the error output. Fix the issue and return the COMPLETE corrected file.
+
+Rules:
+- Return ONLY the fixed Python code — no markdown fences, no explanations.
+- Do NOT change imports from prepare.py or the output format (val_bpb, etc.).
+- Fix the actual bug — don't just add try/except to suppress it.
+- Keep the same architecture intent, just make it work."""
+
+    user_prompt = f"""\
+## Backend
+{backend_label}
+
+## Broken train.py
+{broken_code}
+
+## Error Output (last 50 lines)
+{error_output}
+
+Fix the code and return the complete corrected train.py."""
+
+    text = call_llm(model_name, api_key, system_prompt, user_prompt)
+    return _strip_fences(text)
+
+
 # ---------------------------------------------------------------------------
 # Generator
 # ---------------------------------------------------------------------------
@@ -547,21 +578,25 @@ def run_baseline(output_dir, backend, time_budget, depth):
     train_wall = time.time() - t0
     if train_result.returncode != 0:
         print(f"\n  FAIL: train.py exited with code {train_result.returncode}")
+        error_lines = train_result.stderr.strip().splitlines()[-30:]
+        stdout_lines = train_result.stdout.strip().splitlines()[-30:]
         print("  stderr (last 30 lines):")
-        for line in train_result.stderr.strip().splitlines()[-30:]:
+        for line in error_lines:
             print(f"    {line}")
         print("  stdout (last 30 lines):")
-        for line in train_result.stdout.strip().splitlines()[-30:]:
+        for line in stdout_lines:
             print(f"    {line}")
-        raise RuntimeError("train.py failed — scaffold is broken")
+        error_text = "\n".join(error_lines + stdout_lines)
+        raise RuntimeError(error_text)
 
     results = _parse_train_output(train_result.stdout)
     if "val_bpb" not in results:
         print("\n  FAIL: train.py ran but produced no val_bpb")
+        stdout_lines = train_result.stdout.strip().splitlines()[-20:]
         print("  stdout (last 20 lines):")
-        for line in train_result.stdout.strip().splitlines()[-20:]:
+        for line in stdout_lines:
             print(f"    {line}")
-        raise RuntimeError("train.py produced no results — scaffold is broken")
+        raise RuntimeError("\n".join(stdout_lines))
 
     results["_prep_wall"] = prep_wall
     results["_train_wall"] = train_wall
@@ -968,23 +1003,46 @@ Examples:
     # --- Always run baseline to guarantee a working scaffold ---
     infra = _detect_infra()
     used_llm = config["use_llm"]
+    max_fix_attempts = 3
+    baseline_results = None
 
-    try:
-        baseline_results = run_baseline(
-            config["output_dir"], config["backend"],
-            config["time_budget"], config["depth"],
-        )
-    except RuntimeError:
-        if used_llm:
-            print("\n  LLM-customized code failed. Falling back to base template...")
-            config["use_llm"] = False
-            files = generate(**config)
+    for attempt in range(max_fix_attempts + 1):
+        try:
             baseline_results = run_baseline(
                 config["output_dir"], config["backend"],
                 config["time_budget"], config["depth"],
             )
-        else:
-            raise
+            break
+        except RuntimeError as e:
+            error_output = str(e)
+            if not used_llm or attempt == max_fix_attempts:
+                raise
+            resolved_key = resolve_api_key(config["model_name"], config.get("api_key"), interactive=False)
+            if not resolved_key:
+                raise
+            print(f"\n  Attempt {attempt + 1}/{max_fix_attempts} failed. Sending error to LLM for fix...")
+            train_path = os.path.join(config["output_dir"], "train.py")
+            with open(train_path) as f:
+                broken_code = f.read()
+            try:
+                fixed_code = fix_with_llm(
+                    broken_code, error_output,
+                    config["model_name"], resolved_key, config["backend"],
+                )
+                with open(train_path, "w") as f:
+                    f.write(fixed_code)
+                # Commit the fix
+                subprocess.run(
+                    ["git", "add", "train.py"], cwd=config["output_dir"], capture_output=True,
+                )
+                subprocess.run(
+                    ["git", "commit", "-m", f"Auto-fix attempt {attempt + 1}"],
+                    cwd=config["output_dir"], capture_output=True,
+                )
+                print(f"  LLM produced a fix. Retrying baseline...")
+            except Exception as fix_err:
+                print(f"  LLM fix failed: {fix_err}")
+                raise RuntimeError(error_output) from fix_err
 
     print_summary(
         config["output_dir"], config["backend"], config["model_name"],

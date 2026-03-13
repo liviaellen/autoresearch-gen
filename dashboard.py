@@ -150,18 +150,9 @@ def _file_mtime(path: Path) -> float:
         return 0.0
 
 
-# ── Sidebar: links ─────────────────────────────────────────────────────────
+# ── Sidebar: title ─────────────────────────────────────────────────────────
 
-st.sidebar.markdown(
-    '<a href="https://github.com/liviaellen/autoresearch-gen" target="_blank">'
-    '<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="20" style="vertical-align:middle"> '
-    "liviaellen/autoresearch-gen</a>"
-    " &nbsp; "
-    '<a href="https://x.com/ellen_in_sf" target="_blank">'
-    '<img src="https://abs.twimg.com/favicons/twitter.3.ico" width="18" style="vertical-align:middle"> '
-    "@ellen_in_sf</a>",
-    unsafe_allow_html=True,
-)
+st.sidebar.markdown("# autoresearch-gen")
 st.sidebar.markdown("---")
 
 # ── Sidebar: experiment picker ──────────────────────────────────────────────
@@ -231,6 +222,20 @@ if meta.get("context"):
         f'{meta["context"]}</div>',
         unsafe_allow_html=True,
     )
+
+# ── Sidebar: links ─────────────────────────────────────────────────────────
+
+st.sidebar.markdown("---")
+st.sidebar.markdown(
+    '<a href="https://github.com/liviaellen/autoresearch-gen" target="_blank">'
+    '<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/github/github-original.svg" width="20" style="vertical-align:middle"> '
+    "liviaellen/autoresearch-gen</a>"
+    " &nbsp; "
+    '<a href="https://x.com/ellen_in_sf" target="_blank">'
+    '<img src="https://abs.twimg.com/favicons/twitter.3.ico" width="18" style="vertical-align:middle"> '
+    "@ellen_in_sf</a>",
+    unsafe_allow_html=True,
+)
 
 if df is None:
     st.title(f"{selected_name}")
