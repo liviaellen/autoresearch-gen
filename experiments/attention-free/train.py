@@ -46,9 +46,7 @@ class GatedConvMixer(nn.Module):
         super().__init__()
         n = config.n_embd
         self.K = kernel_size
-        # Short conv for local patterns + main conv for longer range
         self.conv = nn.Conv1d(n, n, kernel_size=kernel_size, padding=0, groups=n, bias=False)
-        self.short_conv = nn.Conv1d(n, n, kernel_size=3, padding=0, groups=n, bias=False)
         self.gate_proj = nn.Linear(n, n, bias=False)
         self.out_proj = nn.Linear(n, n, bias=False)
 
@@ -56,23 +54,20 @@ class GatedConvMixer(nn.Module):
         B, T, D = x.shape
         x_padded = mx.pad(x, [(0, 0), (self.K - 1, 0), (0, 0)])
         conv_out = self.conv(x_padded)
-        x_padded_short = mx.pad(x, [(0, 0), (2, 0), (0, 0)])
-        short_out = self.short_conv(x_padded_short)
         gate = mx.sigmoid(self.gate_proj(x))
-        return self.out_proj(gate * (conv_out + short_out))
+        return self.out_proj(gate * conv_out)
 
 
 class MLP(nn.Module):
-    def __init__(self, config, expansion=6):
+    def __init__(self, config, expansion=4):
         super().__init__()
         inner = expansion * config.n_embd
         self.c_fc = nn.Linear(config.n_embd, inner, bias=False)
+        self.gate = nn.Linear(config.n_embd, inner, bias=False)
         self.c_proj = nn.Linear(inner, config.n_embd, bias=False)
 
     def __call__(self, x):
-        x = self.c_fc(x)
-        x = mx.maximum(x, 0) ** 2  # ReluSquared
-        return self.c_proj(x)
+        return self.c_proj(nn.silu(self.gate(x)) * self.c_fc(x))
 
 
 class Block(nn.Module):
@@ -112,15 +107,10 @@ class GPT(nn.Module):
             m.conv.weight = mx.broadcast_to(
                 decay.reshape(1, K, 1), m.conv.weight.shape
             ).astype(mx.bfloat16)
-            # Short conv init: simple uniform averaging
-            short_decay = mx.power(mx.array(0.9), mx.arange(3, dtype=mx.float32))
-            short_decay = short_decay / mx.sum(short_decay)
-            m.short_conv.weight = mx.broadcast_to(
-                short_decay.reshape(1, 3, 1), m.short_conv.weight.shape
-            ).astype(mx.bfloat16)
             m.gate_proj.weight = mx.zeros_like(m.gate_proj.weight).astype(mx.bfloat16)
             m.out_proj.weight = mx.zeros_like(m.out_proj.weight).astype(mx.bfloat16)
             block.mlp.c_fc.weight = mx.random.uniform(-scale, scale, block.mlp.c_fc.weight.shape).astype(mx.bfloat16)
+            block.mlp.gate.weight = mx.random.uniform(-scale, scale, block.mlp.gate.weight.shape).astype(mx.bfloat16)
             block.mlp.c_proj.weight = mx.zeros_like(block.mlp.c_proj.weight).astype(mx.bfloat16)
 
     def __call__(self, idx, targets=None, reduction="mean"):
