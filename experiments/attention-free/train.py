@@ -48,14 +48,13 @@ class GatedConvMixer(nn.Module):
         self.K = kernel_size
         self.conv = nn.Conv1d(n, n, kernel_size=kernel_size, padding=0, groups=n, bias=False)
         self.gate_proj = nn.Linear(n, n, bias=False)
-        self.out_proj = nn.Linear(n, n, bias=False)
 
     def __call__(self, x):
         B, T, D = x.shape
         x_padded = mx.pad(x, [(0, 0), (self.K - 1, 0), (0, 0)])
         conv_out = self.conv(x_padded)
         gate = mx.sigmoid(self.gate_proj(x))
-        return self.out_proj(gate * conv_out)
+        return gate * conv_out
 
 
 class MLP(nn.Module):
@@ -88,7 +87,7 @@ class GPT(nn.Module):
         self.config = config
         self.wte = nn.Embedding(config.vocab_size, config.n_embd)
         # Multi-scale kernels for speed/context tradeoff
-        kernel_sizes = [3, 7, 15, 31, 63, 127, 3, 7][:config.n_layer]
+        kernel_sizes = [3, 7, 15, 31, 63, 127, 15, 31][:config.n_layer]
         self.blocks = [Block(config, kernel_size=kernel_sizes[i]) for i in range(config.n_layer)]
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
 
@@ -108,7 +107,6 @@ class GPT(nn.Module):
                 decay.reshape(1, K, 1), m.conv.weight.shape
             ).astype(mx.bfloat16)
             m.gate_proj.weight = mx.zeros_like(m.gate_proj.weight).astype(mx.bfloat16)
-            m.out_proj.weight = mx.zeros_like(m.out_proj.weight).astype(mx.bfloat16)
             block.mlp.c_fc.weight = mx.random.uniform(-scale, scale, block.mlp.c_fc.weight.shape).astype(mx.bfloat16)
             block.mlp.gate.weight = mx.random.uniform(-scale, scale, block.mlp.gate.weight.shape).astype(mx.bfloat16)
             block.mlp.c_proj.weight = mx.zeros_like(block.mlp.c_proj.weight).astype(mx.bfloat16)
