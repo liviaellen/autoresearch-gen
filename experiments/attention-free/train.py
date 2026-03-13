@@ -47,15 +47,13 @@ class GatedConvMixer(nn.Module):
         n = config.n_embd
         self.K = kernel_size
         self.conv = nn.Conv1d(n, n, kernel_size=kernel_size, padding=0, groups=n, bias=False)
-        self.gate_proj = nn.Linear(n, n, bias=False)
         self.out_proj = nn.Linear(n, n, bias=False)
 
     def __call__(self, x):
         B, T, D = x.shape
         x_padded = mx.pad(x, [(0, 0), (self.K - 1, 0), (0, 0)])
         conv_out = self.conv(x_padded)
-        gate = mx.sigmoid(self.gate_proj(x))
-        return self.out_proj(gate * conv_out)
+        return self.out_proj(nn.silu(x) * conv_out)
 
 
 class MLP(nn.Module):
@@ -107,7 +105,6 @@ class GPT(nn.Module):
             m.conv.weight = mx.broadcast_to(
                 decay.reshape(1, K, 1), m.conv.weight.shape
             ).astype(mx.bfloat16)
-            m.gate_proj.weight = mx.zeros_like(m.gate_proj.weight).astype(mx.bfloat16)
             m.out_proj.weight = mx.zeros_like(m.out_proj.weight).astype(mx.bfloat16)
             block.mlp.c_fc.weight = mx.random.uniform(-scale, scale, block.mlp.c_fc.weight.shape).astype(mx.bfloat16)
             block.mlp.gate.weight = mx.random.uniform(-scale, scale, block.mlp.gate.weight.shape).astype(mx.bfloat16)
@@ -262,7 +259,7 @@ MATRIX_LR = 0.003
 SCALAR_LR = 0.5
 WEIGHT_DECAY = 0.1
 ADAM_BETAS = (0.8, 0.95)
-WARMUP_RATIO = 0.15
+WARMUP_RATIO = 0.25
 WARMDOWN_RATIO = 0.7
 FINAL_LR_FRAC = 0.0
 
