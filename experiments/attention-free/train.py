@@ -63,7 +63,7 @@ class MLP(nn.Module):
         self.c_proj = nn.Linear(inner, config.n_embd, bias=False)
 
     def __call__(self, x):
-        return self.c_proj(nn.gelu(self.gate(x)) * self.c_fc(x))
+        return self.c_proj((mx.maximum(self.gate(x), 0) ** 2) * self.c_fc(x))
 
 
 class Block(nn.Module):
