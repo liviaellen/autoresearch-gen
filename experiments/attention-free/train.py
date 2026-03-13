@@ -159,7 +159,7 @@ class AdamW:
                 }
             elif "conv" in path:
                 self.param_config[path] = {
-                    "lr": matrix_lr * 2.0, "betas": adam_betas,
+                    "lr": matrix_lr * 3.0, "betas": adam_betas,
                     "eps": 1e-10, "weight_decay": 0.0,
                 }
             elif "wte" in path:
