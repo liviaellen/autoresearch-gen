@@ -90,7 +90,7 @@ class GPT(nn.Module):
 
     def init_weights(self):
         n_embd = self.config.n_embd
-        scale = n_embd**-0.5
+        scale = 3**0.5 * n_embd**-0.5
 
         self.wte.weight = (mx.random.normal(self.wte.weight.shape) * 0.5).astype(mx.bfloat16)
         self.lm_head.weight = (mx.random.normal(self.lm_head.weight.shape) * 0.001).astype(mx.bfloat16)
@@ -114,7 +114,6 @@ class GPT(nn.Module):
         _, seq_len = idx.shape
 
         x = self.wte(idx)
-        x = norm(x)
         for block in self.blocks:
             x = block(x)
         x = norm(x)
