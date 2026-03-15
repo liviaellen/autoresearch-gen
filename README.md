@@ -1,3 +1,10 @@
+<p align="center">
+  <a href="https://github.com/liviaellen"><img src="https://img.shields.io/badge/GitHub-liviaellen-181717?logo=github" alt="GitHub"></a>
+  <a href="https://linkedin.com/in/liviaellen"><img src="https://img.shields.io/badge/LinkedIn-liviaellen-0A66C2?logo=linkedin" alt="LinkedIn"></a>
+  <a href="https://x.com/ellen_in_sf"><img src="https://img.shields.io/badge/X-@ellen__in__sf-000000?logo=x" alt="X"></a>
+  <a href="https://ko-fi.com/liviaellen"><img src="https://img.shields.io/badge/Buy_Me_a_Coffee-ko--fi-FF5E5B?logo=ko-fi" alt="Buy Me a Coffee"></a>
+</p>
+
 # autoresearch-gen
 
 I loved Karpathy's [autoresearch](https://github.com/karpathy/autoresearch) — point an agent at a codebase and let it run experiments overnight. But every time I wanted to start a new experiment, I was manually editing `program.md`, copy-pasting train scripts, and losing context between runs.
